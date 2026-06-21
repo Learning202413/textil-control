@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Almacén – Tela Recibida</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        /* ── SISTEMA DE DISEÑO (Variables) ── */
+        :root {
+            --color-primary: #0f3460; --color-primary-hover: #1a5ca8;
+            --color-secondary: #1a1a2e; --color-accent: #e2b96f;
+            --color-bg: #f4f6f8; --color-surface: #ffffff;
+            --text-main: #334155; --text-muted: #64748b; --text-light: #cbd5e1;
+            --border-color: #e2e8f0;
+            --success-bg: #d1fae5; --success-text: #065f46;
+            --danger-bg: #fee2e2; --danger-text: #991b1b; --danger-hover: #dc2626;
+            --warning-bg: #fef3c7; --warning-text: #92400e;
+            --info-bg: #e0f2fe; --info-text: #0369a1;
+            --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--color-bg); display: flex; height: 100vh; overflow: hidden; color: var(--text-main); }
+
+        /* ── SIDEBAR ── */
+        aside { width: 260px; background: var(--color-secondary); color: var(--text-light); display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; overflow-y: auto; }
+        aside::-webkit-scrollbar { width: 6px; }
+        aside::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.1); border-radius: 4px; }
+        .sidebar-logo { padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--color-accent); font-weight: 700; font-size: 1.2rem; display:flex; flex-direction: column; gap: 4px;}
+        .sidebar-logo span { font-size: 0.75rem; color: #94a3b8; font-weight: 400; }
+        .sidebar-nav { display: flex; flex-direction: column; gap: 4px; padding: 16px 12px; }
+        .menu-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; color: var(--text-light); text-decoration: none; font-size: 0.88rem; border-radius: var(--radius-sm); transition: all 0.2s; }
+        .menu-link i { font-size: 1.2rem; }
+        .menu-link:hover, .menu-link.activo { background: rgba(15, 52, 96, 0.5); color: #fff; }
+        .menu-link.activo { position: relative; }
+        .menu-link.activo::before { content:''; position: absolute; left: 0; top: 15%; bottom: 15%; width: 4px; background: var(--color-accent); border-radius: 0 4px 4px 0; }
+        .menu-group { margin-bottom: 2px; }
+        .menu-toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; border-radius: var(--radius-sm); transition: all 0.2s; user-select: none; }
+        .menu-toggle span { display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;}
+        .menu-toggle span i { font-size: 1.1rem; }
+        .menu-toggle:hover { color: var(--text-light); background: rgba(255,255,255,0.05); }
+        .menu-toggle .arrow { transition: transform 0.3s ease; font-size: 1.1rem;}
+        .menu-group.active .menu-toggle .arrow { transform: rotate(180deg); }
+        .menu-group.active .menu-toggle { color: #fff; }
+        .menu-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; display: flex; flex-direction: column; gap: 2px; }
+        .menu-group.active .menu-content { max-height: 400px; margin-top: 4px; }
+        .menu-content .menu-link { padding-left: 36px; font-size: 0.85rem; }
+
+        /* ── MAIN ── */
+        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        header { background: var(--color-surface); padding: 0.9rem 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.02); z-index: 10;}
+        header h2 { font-size: 1.15rem; color: var(--color-secondary); font-weight: 600; display:flex; align-items:center; gap:8px;}
+        .user-info { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; font-weight: 500; }
+        .badge-rol { background: #e2e8f0; color: var(--text-main); padding: 0.25rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; }
+        .btn-salir { padding: 0.35rem 0.8rem; border: 1px solid var(--danger-hover); color: var(--danger-hover); border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600; text-decoration: none; display:flex; align-items:center; gap:5px; transition:0.2s;}
+        .btn-salir:hover { background: var(--danger-hover); color: #fff; }
+        .contenido { flex: 1; padding: 24px; overflow-y: auto; }
+
+        /* ── ALERTAS Y TOOLBAR ── */
+        .alerta { padding: 12px 16px; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+        .alerta-ok { background: var(--success-bg); color: var(--success-text); border: 1px solid #a7f3d0; }
+        .alerta-err { background: var(--danger-bg); color: var(--danger-text); border: 1px solid #fecaca; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+        .toolbar h3 { font-size: 1.15rem; color: var(--color-secondary); font-weight: 600; }
+
+        .filtro-wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; background: var(--color-surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .form-control { width: 100%; padding: 0.55rem 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--text-main); background: var(--color-surface); outline: none; transition: 0.2s; font-family: 'Inter', sans-serif;}
+        .form-control:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1); }
+        .search-wrapper { position: relative; flex: 1; min-width: 180px; }
+        .search-wrapper .bx-search { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1.1rem; }
+        .search-wrapper .form-control { padding-left: 2.5rem; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0.55rem 1.1rem; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; text-decoration: none; }
+        .btn i { font-size: 1.1rem; }
+        .btn-primary { background: var(--color-primary); color: #fff; }
+        .btn-primary:hover { background: var(--color-primary-hover); }
+        .btn-outline { background: var(--color-surface); color: var(--text-main); border: 1px solid var(--border-color); }
+        .btn-outline:hover { background: var(--color-bg); }
+
+        /* ── TABLA ── */
+        .card { background: var(--color-surface); border-radius: var(--radius-md); box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid var(--border-color); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
+        th { background: #f8fafc; color: var(--text-muted); font-weight: 600; padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--border-color); text-transform: uppercase; font-size: 0.72rem; }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
+        tr:hover td { background: #f8fafc; }
+        .sin-datos { text-align: center; padding: 48px; color: var(--text-muted); }
+
+        .badge-estado { display: inline-block; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+        .est-ACEPTADO  { background: var(--success-bg); color: var(--success-text); }
+        .est-OBSERVADO { background: var(--warning-bg); color: var(--warning-text); }
+        .est-RECHAZADO { background: var(--danger-bg); color: var(--danger-text); }
+
+        .badge-origen { display: inline-block; padding: 0.35rem 0.8rem; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
+        .or-CLIENTE { background: #e0e7ff; color: #3730a3; }
+        .or-TALLER  { background: #f3e8ff; color: #6b21a8; }
+
+        .dif-ok   { color: var(--success-text); font-weight: 600; }
+        .dif-warn { color: #d97706; font-weight: 700; }
+        .dif-err  { color: var(--danger-hover); font-weight: 700; }
+
+        .reposo-badge { display: inline-block; background: var(--warning-bg); color: var(--warning-text); border-radius: 20px; padding: 0.2rem 0.6rem; font-size: 0.7rem; font-weight: 600; display:flex; align-items:center; gap:4px; width: max-content;}
+
+        .acciones-container { display: flex; gap: 8px; justify-content:center;}
+        .btn-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 6px; cursor: pointer; font-size: 1.15rem; transition: all 0.2s; }
+        .btn-icon.view { color: #0369a1; background: #e0f2fe; }
+        .btn-icon.view:hover { background: #bae6fd; color: #0284c7; }
+        .btn-icon.edit { color: #d97706; background: #fef3c7; }
+        .btn-icon.edit:hover { background: #fde68a; color: #b45309; }
+
+        /* ── MODALES ── */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 1000; justify-content: center; align-items: center; padding: 1rem; backdrop-filter: blur(3px); }
+        .overlay.activo { display: flex; }
+
+        .modal-flotante { background: var(--color-surface); border-radius: var(--radius-md); width: 100%; max-width: 820px; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.15); overflow: hidden; }
+        .modal-flotante-lg { max-width: 1000px; }
+
+        .modal-header { background: var(--color-secondary); padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .modal-header h3 { color: var(--color-surface); font-size: 1.1rem; display:flex; align-items:center; gap:8px; font-weight:600;}
+        .modal-close { background: none; border: none; color: var(--text-light); font-size: 1.5rem; cursor: pointer; transition: 0.2s; }
+        .modal-close:hover { color: #fff; }
+
+        .modal-flotante > form { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+        .modal-body { padding: 1.5rem 2rem; overflow-y: auto; flex: 1; min-height: 0; }
+        .modal-footer { padding: 1rem 2rem; border-top: 1px solid var(--border-color); display: flex; gap: 12px; justify-content: flex-end; flex-shrink: 0; background: #f8fafc; }
+
+        .alerta-error-modal { background: var(--danger-bg); border: 1px solid #fca5a5; color: var(--danger-text); border-radius: var(--radius-md); padding: 12px; font-size: 0.85rem; margin-bottom: 1.2rem; display:flex; align-items:center; gap:8px;}
+        .sec-titulo { font-size: 0.85rem; font-weight: 700; color: var(--color-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid var(--border-color); padding-bottom: 0.4rem; margin: 1.5rem 0 1rem; display:flex; align-items:center; gap:6px;}
+        .sec-titulo:first-of-type { margin-top: 0; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+        .modal-body label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
+        .req { color: var(--danger-hover); margin-left: 2px; }
+        .modal-body textarea { resize: vertical; min-height: 80px; }
+        .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+        .check-fila { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--color-bg); border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-top: 8px;}
+        .check-fila input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
+        .check-fila label { margin: 0; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+
+        .upload-area { border: 2px dashed var(--border-color); border-radius: var(--radius-md); padding: 1.5rem; text-align: center; background: var(--color-bg); transition: border-color .2s; cursor: pointer; }
+        .upload-area:hover { border-color: var(--color-primary); background: #f0f4ff; }
+        .upload-area .ico { font-size: 2rem; display: block; margin-bottom: 8px; color: var(--color-primary);}
+        .upload-area input[type="file"] { display: none; }
+
+        #preview-fotos-modal { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        #preview-fotos-modal img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color); }
+
+        .info-registrador { background: var(--color-bg); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.55rem 1rem; font-size: 0.85rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+
+        .layout-detalle { display: grid; grid-template-columns: 1fr 280px; gap: 1.5rem; }
+        .grid-datos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+        .dato { padding: 6px 0; border-bottom: 1px solid var(--color-bg); }
+        .dato .lbl { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 2px; }
+        .dato .val { font-size: 0.9rem; color: var(--text-main); font-weight: 500; }
+
+        .galeria { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+        .galeria a img { width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md); border: 1px solid var(--border-color); transition: border-color .2s; }
+        .galeria a:hover img { border-color: var(--color-primary); }
+        .sin-fotos { color: var(--text-muted); font-size: 0.85rem; padding: 12px 0; }
+    </style>
+</head>
+<body>
+
+<aside>
+    <div class="sidebar-logo">
+        <div style="display:flex; align-items:center; gap:8px;"><i class='bx bxs-layer'></i> Textil Control</div>
+        <span>Sistema de Producción</span>
+    </div>
+    <nav class="sidebar-nav">
+        <a th:href="@{/dashboard}" class="menu-link"><i class='bx bx-home-alt'></i> Dashboard</a>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('SEG_USUARIOS_VER')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)"><span><i class='bx bx-shield-quarter'></i> Administración</span><i class='bx bx-chevron-down arrow'></i></div>
+            <div class="menu-content">
+                <a th:href="@{/gestion-usuarios}" class="menu-link">Usuarios</a>
+                <a th:href="@{/gestion-especialidades}" class="menu-link">Especialidades</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('CAT_TELAS_VER') or session.permisosUsuario.contains('CAT_MODELOS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)"><span><i class='bx bx-folder'></i> Catálogos</span><i class='bx bx-chevron-down arrow'></i></div>
+            <div class="menu-content">
+                <a th:if="${session.permisosUsuario.contains('CAT_TELAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/catalogo-telas}" class="menu-link">Catálogo Telas</a>
+                <a th:if="${session.permisosUsuario.contains('CAT_MODELOS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/catalogo-modelos}" class="menu-link">Catálogo Modelos</a>
+            </div>
+        </div>
+
+        <div class="menu-group active" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('ALM_TELA_VER') or session.permisosUsuario.contains('PROD_MAQUINISTAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)"><span><i class='bx bx-store'></i> Almacén</span><i class='bx bx-chevron-down arrow'></i></div>
+            <div class="menu-content">
+                <a th:if="${session.permisosUsuario.contains('ALM_TELA_VER')}" th:href="@{/inventario}" class="menu-link activo">Tela Recibida</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_MAQUINISTAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/maquinistas}" class="menu-link">Maquinistas</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('PROD_OT_VER') or session.permisosUsuario.contains('PROD_REPOSO_VER') or session.permisosUsuario.contains('PROD_FALLAS_VER') or session.permisosUsuario.contains('PROD_MERMA_VER') or session.permisosUsuario.contains('PROD_CARGAS_ASIG') or session.permisosUsuario.contains('PROD_CARGAS_VER') or session.usuarioSesion.idRol == 6 or session.usuarioSesion.nombreRol == 'ADMINISTRADOR')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)"><span><i class='bx bx-cog'></i> Producción</span><i class='bx bx-chevron-down arrow'></i></div>
+            <div class="menu-content">
+                <a th:if="${session.permisosUsuario.contains('PROD_OT_VER')}" th:href="@{/ordenes-trabajo}" class="menu-link">Órdenes de Trabajo</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_REPOSO_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/tiempos-reposo}" class="menu-link">Tiempos de Reposo</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_FALLAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/fallas-tela}" class="menu-link">Mapa de Fallas</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_MERMA_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/mermas}" class="menu-link">Mermas</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_CARGAS_ASIG') or session.permisosUsuario.contains('PROD_CARGAS_VER')}" th:href="@{/cargas-trabajo}" class="menu-link">Cargas de Trabajo</a>
+                <a th:if="${session.usuarioSesion.idRol == 6 and not session.permisosUsuario.contains('PROD_CARGAS_ASIG')}" th:href="@{/cargas-trabajo}" class="menu-link">Mis Tareas</a>
+            </div>
+        </div>
+
+        <!-- CALIDAD -->
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('CAL_DEFECTOS_REG') or session.permisosUsuario.contains('CAL_DEFECTOS_VER'))}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-check-shield'></i> Calidad</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/defectos}" class="menu-link">Control de Defectos</a>
+            </div>
+        </div>
+
+        <!-- DESPACHO -->
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('DES_CONCIL_REG') or session.permisosUsuario.contains('DES_CONCIL_VER'))}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-package'></i> Despacho</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/despacho}" class="menu-link">Conciliación y Despacho</a>
+            </div>
+        </div>
+
+        <!-- REPORTES -->
+        <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('RPT_MERMAS_CALIDAD')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-bar-chart-square'></i> Reportes</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/reportes}" class="menu-link">Analíticas</a>
+            </div>
+        </div>
+
+        <!-- BACKUP -->
+        <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('RPT_MERMAS_CALIDAD')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-data'></i> BackUp</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/backup}" class="menu-link">Copias Seguridad</a>
+            </div>
+        </div>
+    </nav>
+</aside>
+
+<main>
+    <header>
+        <h2><i class='bx bx-box'></i> Almacén – Control de Tela Recibida</h2>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div th:replace="~{fragments/notificacion :: campanita}"></div>
+        <div class="user-info">
+            <span th:text="${session.usuarioSesion != null ? session.usuarioSesion.nombreCompleto : 'Admin'}"></span>
+            <span class="badge-rol" th:text="${session.usuarioSesion != null ? session.usuarioSesion.nombreRol : 'Sin Rol'}"></span>
+            <a th:href="@{/logout}" class="btn-salir"><i class='bx bx-log-out'></i> Salir</a>
+        </div></div>
+    </header>
+
+    <div class="contenido">
+
+        <div th:if="${param.exito}" class="alerta alerta-ok"><i class='bx bx-check-circle'></i> <span th:text="${param.exito}"></span></div>
+        <div th:if="${param.error}" class="alerta alerta-err"><i class='bx bx-error-circle'></i> <span th:text="${param.error}"></span></div>
+
+        <div class="toolbar">
+            <h3>Registros de Tela Recibida</h3>
+            <button th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('ALM_TELA_REGISTRAR')}" type="button" class="btn btn-primary" onclick="abrirModalRegistro()">
+                <i class='bx bx-plus'></i> Registrar Ingreso de Tela
+            </button>
+        </div>
+
+        <form class="filtro-wrap" method="get" th:action="@{/inventario}">
+            <div class="search-wrapper">
+                <i class='bx bx-search'></i>
+                <input type="text" name="fCodigo" class="form-control" placeholder="Código de tela..." th:value="${fCodigo}">
+            </div>
+            <div>
+                <input type="text" name="fProveedor" class="form-control" placeholder="Proveedor" th:value="${fProveedor}" style="width:160px;">
+            </div>
+            <div>
+                <input type="date" name="fFechaIni" class="form-control" th:value="${fFechaIni}" title="Fecha inicio" style="width:140px;">
+            </div>
+            <div>
+                <input type="date" name="fFechaFin" class="form-control" th:value="${fFechaFin}" title="Fecha fin" style="width:140px;">
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="submit" class="btn btn-primary"><i class='bx bx-filter-alt'></i> Buscar</button>
+                <a th:href="@{/inventario}" class="btn btn-outline"><i class='bx bx-eraser'></i> Limpiar</a>
+            </div>
+        </form>
+
+        <div class="card">
+            <div th:if="${#lists.isEmpty(listaTelas)}" class="sin-datos">
+                <i class='bx bx-box' style="font-size: 3rem; color: var(--border-color); display:block; margin-bottom:12px;"></i>
+                No hay telas registradas aún.
+            </div>
+
+            <table th:unless="${#lists.isEmpty(listaTelas)}">
+                <thead>
+                <tr>
+                    <th>#</th><th>Código Tela</th><th>OT Vinculada</th><th>Origen</th>
+                    <th>Proveedor</th><th style="text-align:right;">Peso Guía (kg)</th><th style="text-align:right;">Peso Real (kg)</th>
+                    <th style="text-align:center;">Diferencia</th><th style="text-align:center;">Estado Calidad</th><th>Reposo</th>
+                    <th>Registrado por</th><th>Fecha</th><th style="text-align:center;">Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t, stat : ${listaTelas}">
+                    <td style="color:var(--text-muted);" th:text="${stat.count}"></td>
+                    <td style="font-family:monospace; font-weight:700; color:var(--color-primary); font-size:0.95rem;" th:text="${t.codigoTela}"></td>
+                    <td><span style="font-family:monospace; font-size:.85rem; font-weight:600;" th:text="${t.codigoOt != null ? t.codigoOt : '—'}"></span></td>
+                    <td><span th:class="'badge-origen or-' + ${t.origen}" th:text="${t.origen}"></span></td>
+                    <td th:text="${t.proveedor != null ? t.proveedor : '—'}"></td>
+                    <td style="text-align:right; font-weight:500;" th:text="${t.pesoGuia}"></td>
+                    <td style="text-align:right; font-weight:500;" th:text="${t.pesoReal}"></td>
+                    <td style="text-align:center;" th:class="${t.pesoGuia != null and t.diferenciaPeso != null ? ((t.pesoGuia > 0 ? (t.diferenciaPeso.abs().doubleValue() / t.pesoGuia.doubleValue() * 100) : 0) <= 0.5 ? 'dif-ok' : ((t.pesoGuia > 0 ? (t.diferenciaPeso.abs().doubleValue() / t.pesoGuia.doubleValue() * 100) : 0) <= 1.0 ? 'dif-warn' : 'dif-err')) : ''}">
+                        <span th:text="${t.diferenciaPeso != null ? (t.diferenciaPeso >= 0 ? '+' : '') + #numbers.formatDecimal(t.diferenciaPeso, 1, 3) : '0.000'}"></span>
+                    </td>
+                    <td style="text-align:center;"><span th:class="'badge-estado est-' + ${t.estadoCalidad}" th:text="${t.estadoCalidad}"></span></td>
+                    <td>
+                        <span th:if="${t.requiereReposo}" class="reposo-badge"><i class='bx bx-time-five'></i> Sí</span>
+                        <span th:unless="${t.requiereReposo}" style="color:var(--text-light); font-size:.75rem;">No</span>
+                    </td>
+                    <td style="font-size:.8rem;" th:text="${t.nombreRegistrador != null ? t.nombreRegistrador : '—'}"></td>
+                    <td style="font-size:.78rem; color:var(--text-muted);" th:text="${t.fechaIngreso != null ? #temporals.format(t.fechaIngreso, 'dd/MM/yyyy HH:mm') : '—'}"></td>
+                    <td>
+                        <div class="acciones-container">
+
+                            <button type="button" class="btn-icon view" title="Ver Detalle"
+                                    th:data-id="${t.idTela}"
+                                    th:data-codigo="${t.codigoTela}"
+                                    th:data-ot="${t.codigoOt != null ? t.codigoOt : '—'}"
+                                    th:data-clienteot="${t.clienteOt != null ? t.clienteOt : ''}"
+                                    th:data-origen="${t.origen}"
+                                    th:data-proveedor="${t.proveedor != null ? t.proveedor : '—'}"
+                                    th:data-catalogo="${t.nombreCatalogoTela != null ? t.nombreCatalogoTela : '—'}"
+                                    th:data-compcat="${t.composicionCatalogo != null ? t.composicionCatalogo : ''}"
+                                    th:data-tipo="${t.tipoTejido != null ? t.tipoTejido : '—'}"
+                                    th:data-color="${t.color != null ? t.color : '—'}"
+                                    th:data-rollos="${t.numRollos}"
+                                    th:data-pguia="${t.pesoGuia}"
+                                    th:data-preal="${t.pesoReal}"
+                                    th:data-pdif="${t.diferenciaPeso}"
+                                    th:data-estado="${t.estadoCalidad}"
+                                    th:data-reposo="${t.requiereReposo}"
+                                    th:data-tiemporeposo="${t.tiempoReposo != null ? t.tiempoReposo : '0'}"
+                                    th:data-obs="${t.observaciones}"
+                                    th:data-reg="${t.nombreRegistrador}"
+                                    th:data-fecha="${t.fechaIngreso != null ? #temporals.format(t.fechaIngreso, 'dd/MM/yyyy HH:mm') : '—'}"
+                                    onclick="abrirModalDetalle(this)">
+                                <i class='bx bx-show'></i>
+                            </button>
+
+                            <button type="button" class="btn-icon edit" title="Editar"
+                                    th:data-id="${t.idTela}"
+                                    th:data-idot="${t.idOt}"
+                                    th:data-origen="${t.origen}"
+                                    th:data-proveedor="${t.proveedor}"
+                                    th:data-idcat="${t.idCatalogoTela}"
+                                    th:data-tipo="${t.tipoTejido}"
+                                    th:data-color="${t.color}"
+                                    th:data-rollos="${t.numRollos}"
+                                    th:data-pguia="${t.pesoGuia}"
+                                    th:data-preal="${t.pesoReal}"
+                                    th:data-estado="${t.estadoCalidad}"
+                                    th:data-obs="${t.observaciones}"
+                                    th:data-reposo="${t.requiereReposo}"
+                                    onclick="abrirModalEdicion(this)">
+                                <i class='bx bx-edit-alt'></i>
+                            </button>
+
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<div class="overlay" id="overlayRegistro">
+    <div class="modal-flotante modal-flotante-lg">
+        <div class="modal-header">
+            <h3><i class='bx bx-box'></i> Registrar Ingreso de Tela</h3>
+            <button type="button" class="modal-close" onclick="cerrarModalRegistro()">✕</button>
+        </div>
+
+        <form method="POST" th:action="@{/inventario/guardar}" enctype="multipart/form-data" id="formRegistroTela">
+            <div class="modal-body">
+
+                <div class="sec-titulo"><i class='bx bx-list-ul'></i> Orden de Trabajo Vinculada</div>
+                <div class="grid-2">
+                    <div>
+                        <label>Orden de Trabajo <span class="req">*</span></label>
+                        <select name="idOt" id="m_id_ot" class="form-control" required onchange="actualizarProveedorPorOt()">
+                            <option value="">-- Selecciona una OT activa --</option>
+                            <option th:each="ot : ${otsActivas}" th:if="${ot.estado == 'CREADA' or ot.estado == 'EN_PROCESO'}" th:value="${ot.idOt}" th:data-cliente="${ot.cliente}" th:text="${ot.codigoOt + ' – ' + ot.cliente}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Registrado por</label>
+                        <div class="info-registrador">
+                            <i class='bx bx-user'></i> <strong th:text="${session.usuarioSesion != null ? session.usuarioSesion.nombreCompleto : 'Admin'}"></strong>
+                            <span style="margin-left:auto; font-size:.72rem; color:var(--text-muted);"><i class='bx bx-bot'></i> Auto</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-cube'></i> Datos del Material</div>
+                <div class="grid-2">
+                    <div>
+                        <label>Origen <span class="req">*</span></label>
+                        <select name="origen" id="m_origen" class="form-control" required onchange="actualizarProveedorPorOrigen()">
+                            <option value="">-- Selecciona --</option>
+                            <option value="CLIENTE">Del cliente</option>
+                            <option value="TALLER">Adquirida por el taller</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Proveedor</label>
+                        <div style="display:flex; gap:0.4rem; align-items:center;">
+                            <input type="text" id="m_doc_prov" class="form-control" placeholder="RUC/DNI" maxlength="11" style="width:120px; display:none;">
+                            <button type="button" id="btn_buscar_prov" class="btn btn-primary" onclick="buscarProveedor()" style="display:none;"><i class='bx bx-search'></i></button>
+                            <input type="text" name="proveedor" id="m_proveedor" class="form-control" maxlength="150" placeholder="Ej: Textiles Andes S.A.C." style="flex:1;">
+                        </div>
+                    </div>
+                </div>
+                <div class="grid-3" style="margin-top:1rem;">
+                    <div>
+                        <label>Material (Catálogo)</label>
+                        <select name="idCatalogoTela" id="m_cat_tela" class="form-control" onchange="actualizarInfoCatalogo()">
+                            <option value="">-- Seleccione del catálogo --</option>
+                            <option th:each="ct : ${catalogoTelas}" th:value="${ct.idCatalogo}" th:data-reposo="${ct.requiereReposo}" th:data-nombre="${ct.nombre}" th:text="${ct.nombre + ' (' + ct.composicion + ')'}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Tipo de Tejido</label>
+                        <input type="text" name="tipoTejido" id="m_tipo_tejido" class="form-control" maxlength="80">
+                    </div>
+                    <div>
+                        <label>Color</label>
+                        <input type="text" name="color" id="m_color" class="form-control" maxlength="50" placeholder="Ej: Negro">
+                    </div>
+                    <div>
+                        <label>N.° de Rollos</label>
+                        <input type="number" name="numRollos" id="m_num_rollos" class="form-control" min="1" value="1" max="9999">
+                    </div>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-tachometer'></i> Control de Peso</div>
+                <div class="grid-2">
+                    <div>
+                        <label>Peso Guía de Remisión (kg) <span class="req">*</span></label>
+                        <input type="number" name="pesoGuia" id="m_peso_guia" class="form-control" step="0.001" min="0.001" required oninput="calcularDifModal()">
+                    </div>
+                    <div>
+                        <label>Peso Real Medido (kg) <span class="req">*</span></label>
+                        <input type="number" name="pesoReal" id="m_peso_real" class="form-control" step="0.001" min="0.001" required oninput="calcularDifModal()">
+                    </div>
+                </div>
+
+                <div id="alerta-peso-modal" style="display:none; background:var(--warning-bg); border:1px solid #fcd34d; color:var(--warning-text); border-radius:var(--radius-sm); padding:10px; font-size:0.85rem; margin-top:10px; align-items:center; gap:8px;">
+                    <i class='bx bx-error' style="font-size:1.2rem;"></i> <span>Diferencia: <strong id="dif-valor-modal"></strong> — supera el 1% de tolerancia permitido.</span>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-check-shield'></i> Calidad y Observaciones</div>
+                <div>
+                    <label>Estado de Calidad <span class="req">*</span></label>
+                    <select name="estadoCalidad" id="m_estado_calidad" class="form-control" required>
+                        <option value="OBSERVADO">Observado (pendiente revisión)</option>
+                        <option value="ACEPTADO">Aceptado</option>
+                        <option value="RECHAZADO">Rechazado</option>
+                    </select>
+                </div>
+                <div style="margin-top:1rem;">
+                    <label>Observaciones <span class="req">*</span></label>
+                    <textarea name="observaciones" id="m_observaciones" class="form-control" required></textarea>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-camera'></i> Evidencia Fotográfica</div>
+                <label onclick="document.getElementById('m_fotos').click()" style="cursor:pointer; display:block;">
+                    <div class="upload-area" id="m_upload_area">
+                        <i class='bx bx-image-add ico'></i>
+                        <p><strong>Clic o arrastra fotos aquí</strong></p>
+                        <p>JPG, PNG, WEBP · Máx 5 MB · Hasta 4 fotos</p>
+                        <input type="file" id="m_fotos" name="fotos" accept=".jpg,.jpeg,.png,.webp" multiple onchange="previsualizarModal(this)">
+                    </div>
+                </label>
+                <div id="preview-fotos-modal"></div>
+
+                <div class="check-fila">
+                    <input type="checkbox" id="m_reposo" name="requiereReposo">
+                    <label for="m_reposo">Requiere reposo antes del corte</label>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="cerrarModalRegistro()"><i class='bx bx-x'></i> Cancelar</button>
+                <button type="submit" class="btn btn-primary"><i class='bx bx-save'></i> Registrar Ingreso</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="overlay" id="overlayDetalle">
+    <div class="modal-flotante modal-flotante-lg">
+        <div class="modal-header">
+            <h3 id="d_titulo_modal"><i class='bx bx-info-circle'></i> Detalle de Tela Recibida</h3>
+            <button type="button" class="modal-close" onclick="cerrarModalDetalle()">✕</button>
+        </div>
+        <div class="modal-body layout-detalle">
+            <div>
+                <div class="sec-titulo" style="margin-top:0;"><i class='bx bx-list-ul'></i> Datos Generales</div>
+                <div class="grid-datos">
+                    <div class="dato"><div class="lbl">OT Vinculada</div><div class="val" id="d_ot"></div></div>
+                    <div class="dato"><div class="lbl">Origen / Proveedor</div><div class="val" id="d_prov"></div></div>
+                    <div class="dato"><div class="lbl">Material Base</div><div class="val" id="d_cat"></div></div>
+                    <div class="dato"><div class="lbl">Tipo / Color</div><div class="val" id="d_tipo"></div></div>
+                    <div class="dato"><div class="lbl">N.° Rollos</div><div class="val" id="d_rollos"></div></div>
+                    <div class="dato"><div class="lbl">Registrado por</div><div class="val" id="d_reg"></div></div>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-tachometer'></i> Control de Peso</div>
+                <div class="grid-datos">
+                    <div class="dato"><div class="lbl">Peso Guía (kg)</div><div class="val" id="d_pguia"></div></div>
+                    <div class="dato"><div class="lbl">Peso Real (kg)</div><div class="val" id="d_preal"></div></div>
+                    <div class="dato" style="grid-column: 1 / -1;">
+                        <div class="lbl">Diferencia de Peso</div>
+                        <div class="val" id="d_pdif"></div>
+                    </div>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-check-shield'></i> Calidad y Observaciones</div>
+                <div class="grid-datos" style="grid-template-columns: 1fr;">
+                    <div class="dato"><div class="lbl">Estado de Calidad</div><div class="val" id="d_estado"></div></div>
+                    <div class="dato"><div class="lbl">Reposo Requerido</div><div class="val" id="d_reposo"></div></div>
+                    <div class="dato"><div class="lbl">Observaciones</div><div class="val" id="d_obs" style="white-space: pre-wrap; font-size: 0.85rem;"></div></div>
+                </div>
+            </div>
+
+            <div style="background:var(--color-bg); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                <h4 style="font-size:0.85rem; color:var(--color-secondary); margin-bottom:12px; text-transform:uppercase;"><i class='bx bx-images'></i> Evidencia Fotográfica</h4>
+                <div id="d_galeria" class="galeria"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="overlay" id="overlayEdicion">
+    <div class="modal-flotante modal-flotante-lg">
+        <div class="modal-header">
+            <h3><i class='bx bx-edit-alt'></i> Editar Registro de Tela</h3>
+            <button type="button" class="modal-close" onclick="cerrarModalEdicion()">✕</button>
+        </div>
+
+        <form method="POST" th:action="@{/inventario/guardar}">
+            <div class="modal-body">
+                <input type="hidden" name="idTela" id="e_id_tela">
+
+                <div class="sec-titulo"><i class='bx bx-list-ul'></i> Orden de Trabajo Vinculada</div>
+                <div class="grid-2">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Orden de Trabajo <span class="req">*</span></label>
+                        <select name="idOt" id="e_id_ot" class="form-control" required>
+                            <option th:each="ot : ${otsActivas}" th:value="${ot.idOt}" th:text="${ot.codigoOt + ' – ' + ot.cliente}"></option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-cube'></i> Datos del Material</div>
+                <div class="grid-2">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Origen <span class="req">*</span></label>
+                        <select name="origen" id="e_origen" class="form-control" required onchange="visibilidadBuscadorEdicion()">
+                            <option value="CLIENTE">Del cliente</option>
+                            <option value="TALLER">Adquirida por el taller</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Proveedor</label>
+                        <div style="display:flex; gap:0.4rem; align-items:center;">
+                            <input type="text" id="e_doc_prov" class="form-control" placeholder="RUC/DNI" maxlength="11" style="width:120px;">
+                            <button type="button" id="e_btn_buscar_prov" class="btn btn-primary" onclick="buscarProveedorEdicion()"><i class='bx bx-search'></i></button>
+                            <input type="text" name="proveedor" id="e_proveedor" class="form-control" maxlength="150" style="flex:1;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-3" style="margin-top:1rem;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Material (Catálogo)</label>
+                        <select name="idCatalogoTela" id="e_cat_tela" class="form-control">
+                            <option value="">-- Seleccione del catálogo --</option>
+                            <option th:each="ct : ${catalogoTelas}" th:value="${ct.idCatalogo}" th:text="${ct.nombre + ' (' + ct.composicion + ')'}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Tipo de Tejido</label>
+                        <input type="text" name="tipoTejido" id="e_tipo_tejido" class="form-control" maxlength="80">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Color</label>
+                        <input type="text" name="color" id="e_color" class="form-control" maxlength="50">
+                    </div>
+                    <div class="form-group" style="margin-top:1rem; margin-bottom:0;">
+                        <label>N.° de Rollos</label>
+                        <input type="number" name="numRollos" id="e_num_rollos" class="form-control" min="1" max="9999">
+                    </div>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-tachometer'></i> Control de Peso</div>
+                <div class="grid-2">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Peso Guía de Remisión (kg) <span class="req">*</span></label>
+                        <input type="number" name="pesoGuia" id="e_peso_guia" class="form-control" step="0.001" min="0.001" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Peso Real Medido (kg) <span class="req">*</span></label>
+                        <input type="number" name="pesoReal" id="e_peso_real" class="form-control" step="0.001" min="0.001" required>
+                    </div>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-check-shield'></i> Calidad y Observaciones</div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Estado de Calidad <span class="req">*</span></label>
+                    <select name="estadoCalidad" id="e_estado_calidad" class="form-control" required style="width: 50%;">
+                        <option value="OBSERVADO">Observado (pendiente revisión)</option>
+                        <option value="ACEPTADO">Aceptado</option>
+                        <option value="RECHAZADO">Rechazado</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top:1rem;">
+                    <label>Observaciones <span class="req">*</span></label>
+                    <textarea name="observaciones" id="e_observaciones" class="form-control" style="min-height:80px;" required></textarea>
+                </div>
+
+                <div class="sec-titulo"><i class='bx bx-cog'></i> Configuración</div>
+                <div class="check-fila">
+                    <input type="checkbox" id="e_reposo" name="requiereReposo" value="true">
+                    <label for="e_reposo">Requiere reposo antes del corte</label>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="cerrarModalEdicion()"><i class='bx bx-x'></i> Cancelar</button>
+                <button type="submit" class="btn btn-primary"><i class='bx bx-save'></i> Guardar Cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // Inyección segura del JSON de fotos desde Spring Boot
+    let fotosMapJsonStr = /*[[${fotosMap}]]*/ '{}';
+    let fotosMap = {};
+    try { fotosMap = typeof fotosMapJsonStr === 'string' ? JSON.parse(fotosMapJsonStr) : fotosMapJsonStr; } catch(e) {}
+    /*]]>*/
+
+    /* ── 1. MODAL DE REGISTRO ── */
+    function abrirModalRegistro() {
+        document.getElementById('formRegistroTela').reset();
+        document.getElementById('preview-fotos-modal').innerHTML = '';
+        document.getElementById('alerta-peso-modal').style.display = 'none';
+
+        // Dispara la función para inicializar los campos si el select origen por defecto es vacío
+        actualizarProveedorPorOrigen();
+
+        document.getElementById('overlayRegistro').classList.add('activo');
+    }
+
+    function cerrarModalRegistro() {
+        document.getElementById('overlayRegistro').classList.remove('activo');
+    }
+
+    /* ── 2. AUTOMATIZACIÓN DE NEGOCIO (JAVASCRIPT) ── */
+
+    // Cálculo de Diferencia en Vivo
+    function calcularDifModal() {
+        var g = parseFloat(document.getElementById('m_peso_guia').value) || 0;
+        var r = parseFloat(document.getElementById('m_peso_real').value) || 0;
+        var d = r - g;
+        var el = document.getElementById('alerta-peso-modal');
+        if (g > 0 && Math.abs(d) > g * 0.01) {
+            document.getElementById('dif-valor-modal').textContent = (d >= 0 ? '+' : '') + d.toFixed(3) + ' kg (' + Math.abs(d / g * 100).toFixed(1) + '%)';
+            el.style.display = 'flex';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+
+    // Autocompletar proveedor si el origen es CLIENTE
+    function actualizarProveedorPorOrigen() {
+        var origen = document.getElementById('m_origen').value;
+        var proveedorInput = document.getElementById('m_proveedor');
+        var docInput = document.getElementById('m_doc_prov');
+        var btnBuscar = document.getElementById('btn_buscar_prov');
+
+        if (origen === 'CLIENTE') {
+            docInput.style.display = 'none';
+            btnBuscar.style.display = 'none';
+
+            var selectOt = document.getElementById('m_id_ot');
+            var selectedOption = selectOt.options[selectOt.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+                proveedorInput.value = selectedOption.getAttribute('data-cliente') || '';
+            } else {
+                proveedorInput.value = '';
+            }
+        } else if (origen === 'TALLER') {
+            docInput.style.display = 'block';
+            btnBuscar.style.display = 'block';
+            docInput.value = '';
+            proveedorInput.value = '';
+        } else {
+            docInput.style.display = 'none';
+            btnBuscar.style.display = 'none';
+            proveedorInput.value = '';
+        }
+    }
+
+    // Resincronizar proveedor si cambia la OT y el origen es CLIENTE
+    function actualizarProveedorPorOt() {
+        var origen = document.getElementById('m_origen').value;
+        if (origen === 'CLIENTE') {
+            var selectOt = document.getElementById('m_id_ot');
+            var selectedOption = selectOt.options[selectOt.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+                document.getElementById('m_proveedor').value = selectedOption.getAttribute('data-cliente') || '';
+            }
+        }
+    }
+
+    // Autocompletar info al seleccionar el Catálogo
+    function actualizarInfoCatalogo() {
+        var sel = document.getElementById('m_cat_tela');
+        if (sel.selectedIndex > 0) {
+            var option = sel.options[sel.selectedIndex];
+            document.getElementById('m_tipo_tejido').value = option.getAttribute('data-nombre') || '';
+            document.getElementById('m_reposo').checked = (option.getAttribute('data-reposo') === 'true');
+        } else {
+            document.getElementById('m_tipo_tejido').value = '';
+            document.getElementById('m_reposo').checked = false;
+        }
+    }
+
+    // Previsualizar fotos
+    function previsualizarModal(input) {
+        var prev = document.getElementById('preview-fotos-modal');
+        prev.innerHTML = '';
+        Array.from(input.files).slice(0, 4).forEach(function(file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = document.createElement('img');
+                img.src = e.target.result;
+                img.title = file.name;
+                prev.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Consulta API Externa (TALLER)
+    async function buscarProveedor() {
+        var doc = document.getElementById('m_doc_prov').value.trim();
+        var provInput = document.getElementById('m_proveedor');
+        if (doc.length !== 8 && doc.length !== 11) return alert("Ingrese 8 u 11 dígitos");
+
+        try {
+            let response = await fetch('/inventario/buscarProveedor?doc=' + doc);
+            let data = await response.json();
+            provInput.value = (doc.length === 8) ? data.nombres + ' ' + data.apellidoPaterno + ' ' + data.apellidoMaterno : data.razonSocial;
+        } catch (error) { alert("Proveedor no encontrado"); provInput.focus(); }
+    }
+
+
+    /* ── 3. MODAL DETALLE (ESTRUCTURA IDÉNTICA A LA IMAGEN) ── */
+    function abrirModalDetalle(btn) {
+        document.getElementById('d_titulo_modal').innerHTML = "<i class='bx bx-info-circle'></i> Detalle de Tela Recibida: <span style='color:var(--color-accent)'>" + btn.getAttribute('data-codigo') + "</span>";
+
+        // OT y Cliente
+        const codOt = btn.getAttribute('data-ot');
+        const clienteOt = btn.getAttribute('data-clienteot');
+        document.getElementById('d_ot').innerHTML = codOt !== '—' ? `${codOt}<br><span style='font-size:0.75rem; color:var(--text-muted); font-weight:normal;'>(Cliente: ${clienteOt})</span>` : '—';
+
+        document.getElementById('d_prov').textContent = btn.getAttribute('data-origen') + " - " + btn.getAttribute('data-proveedor');
+
+        // Catálogo y Composición
+        const catNombre = btn.getAttribute('data-catalogo');
+        const catComp = btn.getAttribute('data-compcat');
+        document.getElementById('d_cat').textContent = catNombre !== '—' ? `${catNombre} (${catComp})` : '—';
+
+        document.getElementById('d_tipo').textContent = btn.getAttribute('data-tipo') + " / " + btn.getAttribute('data-color');
+        document.getElementById('d_rollos').textContent = btn.getAttribute('data-rollos');
+        document.getElementById('d_reg').innerHTML = btn.getAttribute('data-reg') + " <span style='font-size:0.75rem;color:var(--text-muted); font-weight:normal;'>(" + btn.getAttribute('data-fecha') + ")</span>";
+
+        // Cálculos de Peso y UI (Bloque Amarillo/Verde/Rojo)
+        const pguia = parseFloat(btn.getAttribute('data-pguia'));
+        const preal = parseFloat(btn.getAttribute('data-preal'));
+        const pdif = parseFloat(btn.getAttribute('data-pdif'));
+
+        document.getElementById('d_pguia').innerHTML = `<strong>${pguia.toFixed(3)} kg</strong>`;
+        document.getElementById('d_preal').innerHTML = `<strong>${preal.toFixed(3)} kg</strong>`;
+
+        let difHtml = '';
+        if (pguia > 0) {
+            const porc = Math.abs(pdif / pguia * 100);
+            const sign = pdif > 0 ? '+' : '';
+            let colorClass = porc <= 0.5 ? 'var(--success-text)' : (porc <= 1.0 ? '#d97706' : 'var(--danger-hover)');
+            let bgClass = porc <= 0.5 ? 'var(--success-bg)' : (porc <= 1.0 ? 'var(--warning-bg)' : 'var(--danger-bg)');
+            let borderClass = porc <= 0.5 ? '#a7f3d0' : (porc <= 1.0 ? '#fcd34d' : '#fca5a5');
+
+            difHtml = `<div style="display:inline-flex; align-items:center; gap:6px; background:${bgClass}; color:${colorClass}; padding:4px 10px; border-radius:6px; border:1px solid ${borderClass}; font-weight:700; font-size:0.85rem;">
+                      ${sign}${pdif.toFixed(3)} kg (${porc.toFixed(1)}%)
+                   </div>`;
+        }
+        document.getElementById('d_pdif').innerHTML = difHtml;
+
+        // Estado y Reposo
+        const estado = btn.getAttribute('data-estado');
+        let estClass = estado === 'ACEPTADO' ? 'est-ACEPTADO' : (estado === 'OBSERVADO' ? 'est-OBSERVADO' : 'est-RECHAZADO');
+        document.getElementById('d_estado').innerHTML = `<span class="badge-estado ${estClass}">${estado}</span>`;
+
+        const reposo = btn.getAttribute('data-reposo') === 'true';
+        const tiempoReposo = btn.getAttribute('data-tiemporeposo');
+        document.getElementById('d_reposo').innerHTML = reposo ? `<span class="reposo-badge"><i class='bx bx-time-five'></i> SÍ (Tiempo: ${tiempoReposo}h)</span>` : `<span style="color:var(--text-light); font-size:.75rem;">NO</span>`;
+
+        document.getElementById('d_obs').textContent = btn.getAttribute('data-obs');
+
+        // Cargar fotos desde el JSON inyectado (WebConfig intercepta la ruta /uploads)
+        const idTela = btn.getAttribute('data-id');
+        const galeria = document.getElementById('d_galeria');
+        galeria.innerHTML = '';
+        const fotos = fotosMap[idTela];
+
+        if (fotos && fotos.length > 0) {
+            fotos.forEach(f => {
+                let url = '/' + f.rutaRelativa;
+                galeria.innerHTML += `<a href="${url}" target="_blank"><img src="${url}" alt="Foto"></a>`;
+            });
+        } else {
+            galeria.innerHTML = '<div class="sin-fotos">No se subieron fotos para esta tela.</div>';
+        }
+
+        document.getElementById('overlayDetalle').classList.add('activo');
+    }
+
+    function cerrarModalDetalle() {
+        document.getElementById('overlayDetalle').classList.remove('activo');
+    }
+
+    /* ── 4. MODAL EDICIÓN ── */
+    /* ── 4. MODAL EDICIÓN Y LÓGICA ASOCIADA ── */
+    function abrirModalEdicion(btn) {
+        document.getElementById('e_id_tela').value = btn.getAttribute('data-id');
+        document.getElementById('e_id_ot').value = btn.getAttribute('data-idot');
+        document.getElementById('e_origen').value = btn.getAttribute('data-origen');
+        document.getElementById('e_proveedor').value = btn.getAttribute('data-proveedor') !== '—' ? btn.getAttribute('data-proveedor') : '';
+        document.getElementById('e_cat_tela').value = btn.getAttribute('data-idcat') !== 'null' ? btn.getAttribute('data-idcat') : '';
+        document.getElementById('e_tipo_tejido').value = btn.getAttribute('data-tipo') !== '—' ? btn.getAttribute('data-tipo') : '';
+        document.getElementById('e_color').value = btn.getAttribute('data-color') !== '—' ? btn.getAttribute('data-color') : '';
+        document.getElementById('e_num_rollos').value = btn.getAttribute('data-rollos');
+        document.getElementById('e_peso_guia').value = btn.getAttribute('data-pguia');
+        document.getElementById('e_peso_real').value = btn.getAttribute('data-preal');
+        document.getElementById('e_estado_calidad').value = btn.getAttribute('data-estado');
+        document.getElementById('e_observaciones').value = btn.getAttribute('data-obs');
+        document.getElementById('e_reposo').checked = btn.getAttribute('data-reposo') === 'true';
+
+        visibilidadBuscadorEdicion(); // Ajustar UI del buscador
+        document.getElementById('overlayEdicion').classList.add('activo');
+    }
+
+    function cerrarModalEdicion() {
+        document.getElementById('overlayEdicion').classList.remove('activo');
+    }
+
+    function visibilidadBuscadorEdicion() {
+        var origen = document.getElementById('e_origen').value;
+        var docInput = document.getElementById('e_doc_prov');
+        var btnBuscar = document.getElementById('e_btn_buscar_prov');
+        if (origen === 'CLIENTE') {
+            docInput.style.display = 'none';
+            btnBuscar.style.display = 'none';
+        } else {
+            docInput.style.display = 'block';
+            btnBuscar.style.display = 'block';
+        }
+    }
+
+    async function buscarProveedorEdicion() {
+        var doc = document.getElementById('e_doc_prov').value.trim();
+        var provInput = document.getElementById('e_proveedor');
+        if (doc.length !== 8 && doc.length !== 11) return alert("Ingrese 8 u 11 dígitos");
+
+        try {
+            let response = await fetch('/inventario/buscarProveedor?doc=' + doc);
+            let data = await response.json();
+            provInput.value = (doc.length === 8) ? data.nombres + ' ' + data.apellidoPaterno + ' ' + data.apellidoMaterno : data.razonSocial;
+        } catch (error) { alert("Proveedor no encontrado"); provInput.focus(); }
+    }
+
+    // Cerrar modales clickeando en el fondo oscuro
+    document.getElementById('overlayRegistro').addEventListener('click', function(e) { if(e.target === this) cerrarModalRegistro(); });
+    document.getElementById('overlayDetalle').addEventListener('click', function(e) { if(e.target === this) cerrarModalDetalle(); });
+    document.getElementById('overlayEdicion').addEventListener('click', function(e) { if(e.target === this) cerrarModalEdicion(); });
+
+    function toggleSubmenu(element) { element.parentElement.classList.toggle('active'); }
+</script>
+
+</body>
+</html>

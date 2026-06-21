@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Backups | Textil Control</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ── SISTEMA DE DISEÑO MODERNIZADO (Variables) ── */
+        :root {
+            --color-primary: #2563eb;       /* Azul moderno vibrante */
+            --color-primary-hover: #1d4ed8;
+            --color-secondary: #0f172a;     /* Pizarra ultra oscuro */
+            --color-accent: #f59e0b;        /* Ámbar */
+            --color-bg: #f8fafc;            /* Fondo general más suave */
+            --color-surface: #ffffff;
+            --text-main: #334155;           /* Pizarra oscuro para lectura */
+            --text-muted: #64748b;          /* Pizarra medio */
+            --text-light: #cbd5e1;
+            --border-color: #e2e8f0;        /* Borde sutil */
+
+            /* Colores de estado modernizados (Fondo suave + Texto fuerte) */
+            --success-bg: #dcfce7; --success-text: #065f46;
+            --danger-bg: #fee2e2; --danger-text: #991b1b;
+            --warning-bg: #fef3c7; --warning-text: #92400e;
+            --info-bg: #e0f2fe; --info-text: #0369a1;
+
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--color-bg); display: flex; height: 100vh; overflow: hidden; color: var(--text-main); -webkit-font-smoothing: antialiased; }
+
+        /* ── SIDEBAR ── */
+        aside { width: 260px; background: var(--color-secondary); color: var(--text-light); display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; overflow-y: auto; box-shadow: var(--shadow-md); z-index: 20; }
+        aside::-webkit-scrollbar { width: 4px; }
+        aside::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.1); border-radius: 4px; }
+        .sidebar-logo { padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--color-surface); font-weight: 700; font-size: 1.25rem; display:flex; flex-direction: column; gap: 4px; letter-spacing: -0.02em;}
+        .sidebar-logo span { font-size: 0.75rem; color: #94a3b8; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase;}
+        .sidebar-nav { display: flex; flex-direction: column; gap: 4px; padding: 20px 12px; }
+
+        .menu-link { display: flex; align-items: center; gap: 12px; padding: 10px 16px; color: var(--text-light); text-decoration: none; font-size: 0.9rem; font-weight: 500; border-radius: var(--radius-md); transition: all 0.2s ease; }
+        .menu-link i { font-size: 1.25rem; opacity: 0.8; transition: opacity 0.2s; }
+        .menu-link:hover { background: rgba(255,255,255,0.06); color: var(--color-surface); }
+        .menu-link:hover i { opacity: 1; }
+        .menu-link.activo { background: var(--color-primary); color: var(--color-surface); font-weight: 600; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        .menu-link.activo i { opacity: 1; }
+
+        .menu-group { margin-bottom: 4px; }
+        .menu-toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; cursor: pointer; color: #94a3b8; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-radius: var(--radius-md); transition: all 0.2s ease; user-select: none; }
+        .menu-toggle span { display: flex; align-items: center; gap: 10px; }
+        .menu-toggle span i { font-size: 1.2rem; }
+        .menu-toggle:hover { color: var(--color-surface); background: rgba(255,255,255,0.04); }
+        .menu-content { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 2px; }
+        .menu-group.active .menu-content { max-height: 500px; margin-top: 4px; }
+        .menu-content .menu-link { padding-left: 42px; font-size: 0.85rem; }
+
+        /* ── MAIN & HEADER ── */
+        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--color-bg); }
+        header { background: var(--color-surface); padding: 1rem 28px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow-sm); z-index: 10;}
+        header h2 { font-size: 1.2rem; color: var(--color-secondary); font-weight: 700; display:flex; align-items:center; gap:10px; letter-spacing: -0.01em;}
+        header h2 i { color: var(--color-primary); }
+
+        .user-info { display: flex; align-items: center; gap: 16px; font-size: 0.85rem; font-weight: 600; color: var(--color-secondary); }
+        .btn-salir { padding: 0.4rem 1rem; border: 1.5px solid #f87171; color: var(--danger-text); border-radius: var(--radius-md); font-size: 0.8rem; font-weight: 600; text-decoration: none; display:flex; align-items:center; gap:6px; transition: all 0.2s ease;}
+        .btn-salir:hover { background: #fef2f2; border-color: var(--danger-text); transform: translateY(-1px); }
+
+        .contenido { flex: 1; padding: 28px; overflow-y: auto; }
+
+        /* ── CARDS ── */
+        .card { background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); border: 1px solid rgba(226, 232, 240, 0.8); overflow: hidden; padding: 24px; transition: transform 0.2s ease;}
+
+        /* ── BOTONES ── */
+        .btn-primary { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover)); color: #fff; border: none; padding: 10px 20px; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);}
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35); }
+        .btn-primary:active { transform: translateY(0); }
+
+        /* ── ALERTAS MODERNAS (Toast Style) ── */
+        .alerta-info, .alerta-ok, .alerta-err { padding: 14px 18px; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 500; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm); }
+        .alerta-info { background: var(--info-bg); color: var(--info-text); border-left: 4px solid #38bdf8; }
+        .alerta-ok { background: var(--success-bg); color: var(--success-text); border-left: 4px solid #34d399; }
+        .alerta-err { background: var(--danger-bg); color: var(--danger-text); border-left: 4px solid #f87171; }
+
+        /* ── TABLAS ── */
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 8px; font-size: 0.875rem; }
+        th { padding: 14px 16px; background: #f8fafc; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-color); text-align: left; }
+        td { padding: 16px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr { transition: background-color 0.2s ease; }
+        tr:hover td { background: #f1f5f9; }
+
+        /* ── ICON BUTTONS (Acciones) ── */
+        .btn-icon { background: none; border: none; font-size: 1.25rem; cursor: pointer; transition: all 0.2s ease; padding: 6px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;}
+        .btn-icon.download { color: var(--color-primary); background: #eff6ff; }
+        .btn-icon.download:hover { background: #dbeafe; transform: scale(1.1); }
+        .btn-icon.delete { color: #dc2626; background: #fef2f2; }
+        .btn-icon.delete:hover { background: #fee2e2; transform: scale(1.1); }
+        .btn-icon.restore { color: #059669; background: #d1fae5; }
+        .btn-icon.restore:hover { background: #a7f3d0; transform: scale(1.1); }
+
+        /* ── BADGES DE ESTADO (Diseño Píldora) ── */
+        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
+        .badge.success { background: var(--success-bg); color: var(--success-text); }
+        .badge.error { background: var(--danger-bg); color: var(--danger-text); }
+        .badge.processing { background: var(--info-bg); color: var(--info-text); }
+
+        /* ── MODALES ── */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 1000; justify-content: center; align-items: center; padding: 1rem; backdrop-filter: blur(4px); animation: fadeIn 0.2s ease-out;}
+        .overlay.activo { display: flex; }
+        .modal-flotante { background: var(--color-surface); border-radius: var(--radius-lg); width: 100%; max-width: 480px; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); overflow: hidden; text-align: center; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);}
+        .modal-body { padding: 2.5rem 2rem; }
+
+        .btn-peligro { background: #ef4444; color: white; border: none; padding: 10px 24px; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);}
+        .btn-peligro:hover { background: #dc2626; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);}
+        .btn-gris { background: #f1f5f9; color: var(--text-main); border: none; padding: 10px 24px; border-radius: var(--radius-md); cursor: pointer; font-weight: 600; transition: all 0.2s ease;}
+        .btn-gris:hover { background: #e2e8f0; transform: translateY(-1px); }
+
+        /* Animaciones para Modales */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<aside>
+    <div class="sidebar-logo">
+        <div style="display:flex; align-items:center; gap:8px;"><i class='bx bxs-layer'></i> Textil Control</div>
+        <span>Sistema de Producción</span>
+    </div>
+    <nav class="sidebar-nav">
+        <a th:href="@{/dashboard}" class="menu-link"><i class='bx bx-home-alt'></i> Dashboard</a>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('SEG_USUARIOS_VER')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-shield-quarter'></i> Administración</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/gestion-usuarios}" class="menu-link">Usuarios</a>
+                <a th:href="@{/gestion-especialidades}" class="menu-link">Especialidades</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('CAT_TELAS_VER') or session.permisosUsuario.contains('CAT_MODELOS_VER') or session.nombreRol == 'ADMINISTRADOR')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-folder'></i> Catálogos</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:if="${session.permisosUsuario.contains('CAT_TELAS_VER') or session.nombreRol == 'ADMINISTRADOR'}" th:href="@{/catalogo-telas}" class="menu-link">Catálogo Telas</a>
+                <a th:if="${session.permisosUsuario.contains('CAT_MODELOS_VER') or session.nombreRol == 'ADMINISTRADOR'}" th:href="@{/catalogo-modelos}" class="menu-link">Catálogo Modelos</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('ALM_TELA_VER') or session.permisosUsuario.contains('PROD_MAQUINISTAS_VER') or session.nombreRol == 'ADMINISTRADOR')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-store'></i> Almacén</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:if="${session.permisosUsuario.contains('ALM_TELA_VER')}" th:href="@{/inventario}" class="menu-link">Tela Recibida</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_MAQUINISTAS_VER') or session.nombreRol == 'ADMINISTRADOR'}" th:href="@{/maquinistas}" class="menu-link">Maquinistas</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('PROD_OT_VER') or session.permisosUsuario.contains('PROD_REPOSO_VER') or session.permisosUsuario.contains('PROD_FALLAS_VER') or session.permisosUsuario.contains('PROD_MERMA_VER') or session.permisosUsuario.contains('PROD_CARGAS_ASIG') or session.permisosUsuario.contains('PROD_CARGAS_VER') or session.usuarioSesion != null and session.usuarioSesion.idRol == 6 or session.nombreRol == 'ADMINISTRADOR')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-cog'></i> Producción</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:if="${session.permisosUsuario.contains('PROD_OT_VER')}" th:href="@{/ordenes-trabajo}" class="menu-link">Órdenes de Trabajo</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_REPOSO_VER') or session.nombreRol == 'ADMINISTRADOR'}" th:href="@{/tiempos-reposo}" class="menu-link">Tiempos de Reposo</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_FALLAS_VER') or session.nombreRol == 'ADMINISTRADOR'}" th:href="@{/fallas-tela}" class="menu-link">Mapa de Fallas</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_MERMA_VER') or session.nombreRol == 'ADMINISTRADOR'}" th:href="@{/mermas}" class="menu-link">Mermas</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_CARGAS_ASIG') or session.permisosUsuario.contains('PROD_CARGAS_VER')}" th:href="@{/cargas-trabajo}" class="menu-link">Cargas de Trabajo</a>
+                <a th:if="${session.usuarioSesion != null and session.usuarioSesion.idRol == 6 and not session.permisosUsuario.contains('PROD_CARGAS_ASIG')}" th:href="@{/cargas-trabajo}" class="menu-link">Mis Tareas</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('CAL_DEFECTOS_REG') or session.permisosUsuario.contains('CAL_DEFECTOS_VER'))}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-check-shield'></i> Calidad</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/defectos}" class="menu-link">Control de Defectos</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('DES_CONCIL_REG') or session.permisosUsuario.contains('DES_CONCIL_VER'))}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-package'></i> Despacho</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/despacho}" class="menu-link">Conciliación y Despacho</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('RPT_MERMAS_CALIDAD')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-bar-chart-square'></i> Reportes</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/reportes}" class="menu-link">Analíticas</a>
+            </div>
+        </div>
+
+        <div class="menu-group active" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('RPT_MERMAS_CALIDAD')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-data'></i> BackUp</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/backup}" class="menu-link activo">Copias Seguridad</a>
+            </div>
+        </div>
+    </nav>
+</aside>
+
+<main>
+    <header>
+
+        <h2><i class='bx bx-server'></i> Gestión de Backups de Base de Datos</h2>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div th:replace="~{fragments/notificacion :: campanita}"></div>
+            <div class="user-info">
+                <span th:text="${session.usuarioSesion.nombreCompleto}">Admin</span>
+                <a th:href="@{/logout}" class="btn-salir"><i class='bx bx-log-out'></i> Salir</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="contenido">
+        <div class="card" style="margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin-bottom: 6px; color: var(--color-secondary); font-size: 1.1rem;">Generar Copia de Seguridad</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); max-width: 600px; line-height: 1.5;">Realiza un respaldo completo de la base de datos de producción (Estructura y Datos). El proceso se ejecutará de forma segura en segundo plano.</p>
+                </div>
+                <form th:action="@{/backup/generar}" method="POST">
+                    <button type="submit" class="btn-primary"><i class='bx bx-cloud-upload' style="font-size: 1.2rem;"></i> Iniciar Backup Ahora</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="mensaje-area"></div>
+
+        <div class="card">
+            <h3 style="margin-bottom: 16px; color: var(--color-secondary); font-size: 1.05rem;">Historial de Backups</h3>
+
+            <div id="historial-container">
+                <div th:fragment="tabla_backups">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Fecha de Creación</th>
+                            <th>Solicitado Por</th>
+                            <th>Nombre del Archivo</th>
+                            <th>Tamaño</th>
+                            <th>Estado</th>
+                            <th style="text-align: right;">Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${#lists.isEmpty(historial)}">
+                            <td colspan="6" style="padding: 40px 20px; text-align: center; color:var(--text-muted);">
+                                <i class='bx bx-ghost' style="font-size: 2.5rem; color: var(--text-light); margin-bottom: 8px; display: block;"></i>
+                                No hay registros de copias de seguridad aún.
+                            </td>
+                        </tr>
+                        <tr th:each="h : ${historial}">
+                            <td th:text="${#temporals.format(h.fechaSolicitud, 'dd/MM/yyyy HH:mm:ss')}" style="font-weight: 500;"></td>
+                            <td th:text="${h.nombreUsuario}"></td>
+                            <td th:text="${h.nombreArchivo}" style="font-family: monospace; color: var(--color-primary); font-size: 0.8rem;"></td>
+                            <td th:text="${(h.tamanioBytes / 1024) + ' KB'}"></td>
+                            <td>
+                                <span th:if="${h.estado == 'COMPLETADO'}" class="badge success"><i class='bx bx-check-circle'></i> Completado</span>
+                                <span th:if="${h.estado == 'FAILED'}" class="badge error"><i class='bx bx-x-circle'></i> Error</span>
+                                <span th:if="${h.estado == 'IN_PROGRESS'}" class="badge processing"><i class='bx bx-loader-circle bx-spin'></i> Procesando</span>
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                    <a th:href="@{/backup/descargar(file=${h.nombreArchivo})}" class="btn-icon download" title="Descargar Backup">
+                                        <i class='bx bx-download'></i>
+                                    </a>
+                                    <button th:if="${h.estado == 'COMPLETADO'}" type="button" class="btn-icon restore" title="Restaurar este Backup"
+                                            th:attr="onclick=|abrirModalRestaurar('${h.nombreArchivo}')|">
+                                        <i class='bx bx-reset'></i>
+                                    </button>
+                                    <button type="button" class="btn-icon delete" title="Eliminar Permanentemente"
+                                            th:attr="onclick=|eliminarBackup('${h.idBackup}', '${h.nombreArchivo}')|">
+                                        <i class='bx bx-trash'></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="overlay" id="overlayRestaurar">
+    <div class="modal-flotante">
+        <div class="modal-body" id="modalRestaurarContenido">
+            <i class='bx bx-error-circle' style="font-size: 4.5rem; color: #ef4444; margin-bottom: 1.2rem;"></i>
+            <h3 style="margin-bottom: 12px; color: var(--color-secondary); font-size: 1.4rem;">¿Restaurar el Sistema?</h3>
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.5;">
+                Estás a punto de restaurar la base de datos usando el archivo <strong id="lblArchivoRestaurar" style="color: var(--color-primary); word-break: break-all;"></strong>.<br><br>
+                <span style="background: var(--danger-bg); color: var(--danger-text); padding: 8px 12px; border-radius: 6px; display: inline-block; font-size: 0.85rem; font-weight: 600;">
+                    ⚠️ ADVERTENCIA: Todos los datos ingresados después de este backup se perderán. Esta acción es irreversible.
+                </span>
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: center;" id="botonesRestaurar">
+                <button type="button" class="btn-gris" onclick="cerrarModalRestaurar()">NO, Cancelar</button>
+                <button type="button" class="btn-peligro" onclick="ejecutarRestauracion()">SÍ, Restaurar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    var jobId = /*[[${jobId}]]*/ null;
+    /*]]>*/
+
+    function cargarHistorial() {
+        fetch('/backup/listar')
+            .then(res => res.text())
+            .then(html => {
+                document.getElementById('historial-container').innerHTML = html;
+            });
+    }
+
+    if (!jobId) {
+        cargarHistorial();
+    }
+
+    if (jobId) {
+        function consultarEstado() {
+            fetch('/backup/estado?jobId=' + jobId)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.estado === 'COMPLETED') {
+                        document.getElementById('mensaje-area').innerHTML = `<div class="alerta-ok"><i class='bx bx-check-circle' style='font-size:1.2rem'></i> Backup completado y guardado de forma segura: <b>${data.archivo}</b></div>`;
+                        cargarHistorial();
+                        history.replaceState(null, '', '/backup');
+                    } else if (data.estado === 'FAILED') {
+                        document.getElementById('mensaje-area').innerHTML = `<div class="alerta-err"><i class='bx bx-error-circle' style='font-size:1.2rem'></i> Error al generar copia: ${data.mensaje}</div>`;
+                    } else {
+                        document.getElementById('mensaje-area').innerHTML = `<div class="alerta-info"><i class='bx bx-loader-circle bx-spin' style='font-size:1.2rem'></i> Creando punto de restauración... por favor no cierre esta ventana.</div>`;
+                        setTimeout(consultarEstado, 3000);
+                    }
+                });
+        }
+        consultarEstado();
+    }
+
+    function eliminarBackup(idBackup, nombreArchivo) {
+        if (confirm('¿Eliminar permanentemente el backup "' + nombreArchivo + '"?')) {
+            const formData = new URLSearchParams();
+            formData.append('id', idBackup);
+            formData.append('file', nombreArchivo);
+
+            fetch('/backup/eliminar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        cargarHistorial();
+                        const msgDiv = document.getElementById('mensaje-area');
+                        msgDiv.innerHTML = `<div class="alerta-ok"><i class='bx bx-trash' style='font-size:1.2rem'></i> Archivo de respaldo eliminado correctamente del servidor.</div>`;
+                        setTimeout(() => { msgDiv.innerHTML = ''; }, 4000);
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(err => alert('Error de red al intentar eliminar: ' + err));
+        }
+    }
+
+    function toggleSubmenu(element) { element.parentElement.classList.toggle('active'); }
+
+    var archivoARestaurar = '';
+
+    function abrirModalRestaurar(nombreArchivo) {
+        archivoARestaurar = nombreArchivo;
+        document.getElementById('lblArchivoRestaurar').textContent = nombreArchivo;
+        document.getElementById('overlayRestaurar').classList.add('activo');
+    }
+
+    function cerrarModalRestaurar() {
+        document.getElementById('overlayRestaurar').classList.remove('activo');
+        archivoARestaurar = '';
+    }
+
+    function ejecutarRestauracion() {
+        if (!archivoARestaurar) return;
+
+        const divBotones = document.getElementById('botonesRestaurar');
+        divBotones.innerHTML = `<span style="color:var(--color-primary); font-weight:600; font-size: 1.05rem; display:flex; align-items:center; gap:8px;"><i class='bx bx-loader-alt bx-spin' style='font-size:1.5rem'></i> Restaurando base de datos, no cierre el navegador...</span>`;
+
+        const formData = new URLSearchParams();
+        formData.append('file', archivoARestaurar);
+
+        fetch('/backup/restaurar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    cerrarModalRestaurar();
+                    document.getElementById('mensaje-area').innerHTML = `<div class="alerta-ok"><i class='bx bx-party' style='font-size:1.2rem'></i> <b>¡Restauración Exitosa!</b> El sistema ha vuelto al estado exacto del backup seleccionado.</div>`;
+
+                    divBotones.innerHTML = `
+                        <button type="button" class="btn-gris" onclick="cerrarModalRestaurar()">NO, Cancelar</button>
+                        <button type="button" class="btn-peligro" onclick="ejecutarRestauracion()">SÍ, Restaurar</button>
+                    `;
+                } else {
+                    alert('Se encontró un problema al restaurar: ' + data.error);
+                    cerrarModalRestaurar();
+                }
+            })
+            .catch(err => {
+                alert('Fallo de conexión crítico durante la restauración: ' + err);
+                cerrarModalRestaurar();
+            });
+    }
+</script>
+</body>
+</html>

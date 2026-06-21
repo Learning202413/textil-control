@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes Avanzados – Sistema Textil</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    /* ── SISTEMA DE DISEÑO (Variables) ── */
+    :root {
+      --color-primary: #0f3460; --color-primary-hover: #1a5ca8;
+      --color-secondary: #1a1a2e; --color-accent: #e2b96f;
+      --color-bg: #f4f6f8; --color-surface: #ffffff;
+      --text-main: #334155; --text-muted: #64748b; --text-light: #cbd5e1;
+      --border-color: #e2e8f0;
+      --success-bg: #d1fae5; --success-text: #065f46;
+      --danger-bg: #fee2e2; --danger-text: #991b1b; --danger-hover: #dc2626;
+      --warning-bg: #fef3c7; --warning-text: #92400e;
+      --radius-sm: 6px; --radius-md: 8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--color-bg); display: flex; height: 100vh; overflow: hidden; color: var(--text-main); }
+
+    /* ── SIDEBAR ── */
+    aside { width: 260px; background: var(--color-secondary); color: var(--text-light); display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; overflow-y: auto; }
+    aside::-webkit-scrollbar { width: 6px; }
+    aside::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.1); border-radius: 4px; }
+    .sidebar-logo { padding: 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--color-accent); font-weight: 700; font-size: 1.2rem; display:flex; flex-direction: column; gap: 4px;}
+    .sidebar-logo span { font-size: 0.75rem; color: #94a3b8; font-weight: 400; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 4px; padding: 16px 12px; }
+    .menu-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; color: var(--text-light); text-decoration: none; font-size: 0.88rem; border-radius: var(--radius-sm); transition: all 0.2s; }
+    .menu-link i { font-size: 1.2rem; }
+    .menu-link:hover, .menu-link.activo { background: rgba(15, 52, 96, 0.5); color: #fff; }
+    .menu-link.activo { position: relative; }
+    .menu-link.activo::before { content:''; position: absolute; left: 0; top: 15%; bottom: 15%; width: 4px; background: var(--color-accent); border-radius: 0 4px 4px 0; }
+    .menu-group { margin-bottom: 2px; }
+    .menu-toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; border-radius: var(--radius-sm); transition: all 0.2s; user-select: none; }
+    .menu-toggle span { display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;}
+    .menu-toggle span i { font-size: 1.1rem; }
+    .menu-toggle:hover { color: var(--text-light); background: rgba(255,255,255,0.05); }
+    .menu-toggle .arrow { transition: transform 0.3s ease; font-size: 1.1rem;}
+    .menu-group.active .menu-toggle .arrow { transform: rotate(180deg); }
+    .menu-group.active .menu-toggle { color: #fff; }
+    .menu-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; display: flex; flex-direction: column; gap: 2px; }
+    .menu-group.active .menu-content { max-height: 400px; margin-top: 4px; }
+    .menu-content .menu-link { padding-left: 36px; font-size: 0.85rem; }
+
+    /* ── MAIN & HEADER ── */
+    main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+    header { background: var(--color-surface); padding: 0.9rem 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.02); flex-wrap: wrap; gap: 1rem; z-index: 10;}
+    header h2 { font-size: 1.15rem; color: var(--color-secondary); font-weight: 600; display:flex; align-items:center; gap:8px;}
+    .user-info { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; font-weight: 500; }
+    .badge-rol { background: #e2e8f0; color: var(--text-main); padding: 0.25rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+    .btn-salir { padding: 0.35rem 0.8rem; border: 1px solid var(--danger-hover); color: var(--danger-hover); border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600; text-decoration: none; display:flex; align-items:center; gap:5px; transition:0.2s;}
+    .btn-salir:hover { background: var(--danger-hover); color: #fff; }
+
+    /* ── CONTROLES & TABS ── */
+    .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .btn { padding: 0.5rem 1rem; border: none; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; font-family: 'Inter', sans-serif;}
+    .btn-pdf { background-color: var(--danger-text); color: white; }
+    .btn-pdf:hover { background-color: var(--danger-hover); }
+    .btn-excel { background-color: var(--success-text); color: white; }
+    .btn-excel:hover { background-color: #047857; }
+    .btn-view { background-color: var(--color-surface); color: var(--text-main); border: 1px solid var(--border-color); }
+    .btn-view:hover { background-color: var(--color-bg); }
+    .btn-view.active { background-color: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+
+    .tabs { display: flex; gap: 8px; padding: 16px 24px 0; border-bottom: 1px solid var(--border-color); background: var(--color-surface); flex-wrap: wrap; }
+    .tab-btn { padding: 10px 16px; background: transparent; border: none; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; font-size: 0.85rem; display:flex; align-items:center; gap:6px; font-family: 'Inter', sans-serif;}
+    .tab-btn:hover { color: var(--color-primary); }
+    .tab-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+    .tab-content { display: none; padding: 24px; }
+    .tab-content.active { display: block; }
+
+    .section-title { font-size: 1.1rem; font-weight: 700; color: var(--color-secondary); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); }
+
+    .view-controls { display: flex; justify-content: space-between; gap: 16px; margin: 16px 24px 0; background: var(--color-surface); padding: 12px 16px; border-radius: var(--radius-md); box-shadow: 0 1px 3px rgba(0,0,0,0.04); align-items: center; flex-wrap: wrap; border: 1px solid var(--border-color); }
+    .view-controls span { font-weight: 600; font-size: 0.85rem; color: var(--text-main); margin-right: 8px; }
+
+    /* ── GRID & CARDS ── */
+    .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; transition: all 0.3s ease; align-items: stretch; }
+    .grid-container.solo-tabla { grid-template-columns: 1fr; }
+    .grid-container.solo-grafico { grid-template-columns: 1fr; }
+    .grid-container.solo-tabla .card-grafico { position: absolute; visibility: hidden; opacity: 0; pointer-events: none; z-index: -1; height: 0; }
+    .grid-container.solo-grafico .card-tabla { position: absolute; visibility: hidden; opacity: 0; pointer-events: none; z-index: -1; height: 0; }
+
+    .card { background: var(--color-surface); border-radius: var(--radius-md); padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; }
+    .card-tabla { max-height: 400px; overflow-y: auto; overflow-x: auto; }
+    .card-grafico { display: flex; justify-content: center; align-items: center; min-height: 350px; }
+    .chart-wrapper { position: relative; height: 350px; width: 100%; }
+
+    /* ── TABLAS ── */
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; white-space: nowrap;}
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+    th { background: #f8fafc; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.72rem; position: sticky; top: 0; z-index: 2; border-bottom: 2px solid var(--border-color);}
+    tfoot th { background: var(--color-secondary); color: white; font-weight: bold; border-bottom: none;}
+    .txt-danger { color: var(--danger-text); font-weight: 600; }
+    .txt-success { color: var(--success-text); font-weight: 600; }
+    .txt-mono { font-family: monospace; font-weight: 700; }
+
+    /* ── ALERTA ERROR ── */
+    .alerta-err { background: var(--danger-bg); color: var(--danger-text); border: 1px solid #fecaca; padding: 12px 16px; border-radius: var(--radius-md); margin: 16px 24px; font-size: .85rem; font-weight: 500; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1100px) {
+      .grid-container { grid-template-columns: 1fr; }
+      .chart-wrapper { height: 300px; }
+    }
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      aside { width: 100%; height: auto; }
+      .tabs { overflow-x: auto; white-space: nowrap; flex-wrap: nowrap; padding-bottom: 0.5rem; }
+      .tab-btn { flex: 0 0 auto; }
+    }
+  </style>
+</head>
+<body class="modo-ambos">
+
+<!-- ═══════════════════════ SIDEBAR ═══════════════════════ -->
+<aside>
+  <div class="sidebar-logo">
+    <div style="display:flex; align-items:center; gap:8px;"><i class='bx bxs-layer'></i> Textil Control</div>
+    <span>Sistema de Producción</span>
+  </div>
+  <nav class="sidebar-nav">
+
+    <a th:href="@{/dashboard}" class="menu-link"><i class='bx bx-home-alt'></i> Dashboard</a>
+
+    <!-- Administración -->
+    <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('SEG_USUARIOS_VER')}">
+      <div class="menu-toggle" onclick="toggleSubmenu(this)">
+        <span><i class='bx bx-shield-quarter'></i> Administración</span>
+        <i class='bx bx-chevron-down arrow'></i>
+      </div>
+      <div class="menu-content">
+        <a th:href="@{/gestion-usuarios}" class="menu-link">Usuarios</a>
+        <a th:href="@{/gestion-especialidades}" class="menu-link">Especialidades</a>
+      </div>
+    </div>
+
+    <!-- Catálogos -->
+    <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('CAT_TELAS_VER') or session.permisosUsuario.contains('CAT_MODELOS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR')}">
+      <div class="menu-toggle" onclick="toggleSubmenu(this)">
+        <span><i class='bx bx-folder'></i> Catálogos</span>
+        <i class='bx bx-chevron-down arrow'></i>
+      </div>
+      <div class="menu-content">
+        <a th:if="${session.permisosUsuario.contains('CAT_TELAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/catalogo-telas}" class="menu-link">Catálogo Telas</a>
+        <a th:if="${session.permisosUsuario.contains('CAT_MODELOS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/catalogo-modelos}" class="menu-link">Catálogo Modelos</a>
+      </div>
+    </div>
+
+    <!-- Almacén -->
+    <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('ALM_TELA_VER') or session.permisosUsuario.contains('PROD_MAQUINISTAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR')}">
+      <div class="menu-toggle" onclick="toggleSubmenu(this)">
+        <span><i class='bx bx-store'></i> Almacén</span>
+        <i class='bx bx-chevron-down arrow'></i>
+      </div>
+      <div class="menu-content">
+        <a th:if="${session.permisosUsuario.contains('ALM_TELA_VER')}" th:href="@{/inventario}" class="menu-link">Tela Recibida</a>
+        <a th:if="${session.permisosUsuario.contains('PROD_MAQUINISTAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/maquinistas}" class="menu-link">Maquinistas</a>
+      </div>
+    </div>
+
+    <!-- Producción -->
+    <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('PROD_OT_VER') or session.permisosUsuario.contains('PROD_REPOSO_VER') or session.permisosUsuario.contains('PROD_FALLAS_VER') or session.permisosUsuario.contains('PROD_MERMA_VER') or session.permisosUsuario.contains('PROD_CARGAS_ASIG') or session.permisosUsuario.contains('PROD_CARGAS_VER') or session.usuarioSesion.idRol == 6 or session.usuarioSesion.nombreRol == 'ADMINISTRADOR')}">
+      <div class="menu-toggle" onclick="toggleSubmenu(this)">
+        <span><i class='bx bx-cog'></i> Producción</span>
+        <i class='bx bx-chevron-down arrow'></i>
+      </div>
+      <div class="menu-content">
+        <a th:if="${session.permisosUsuario.contains('PROD_OT_VER')}" th:href="@{/ordenes-trabajo}" class="menu-link">Órdenes de Trabajo</a>
+        <a th:if="${session.permisosUsuario.contains('PROD_REPOSO_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/tiempos-reposo}" class="menu-link">Tiempos de Reposo</a>
+        <a th:if="${session.permisosUsuario.contains('PROD_FALLAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/fallas-tela}" class="menu-link">Mapa de Fallas</a>
+        <a th:if="${session.permisosUsuario.contains('PROD_MERMA_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/mermas}" class="menu-link">Mermas</a>
+        <a th:if="${session.permisosUsuario.contains('PROD_CARGAS_ASIG') or session.permisosUsuario.contains('PROD_CARGAS_VER')}" th:href="@{/cargas-trabajo}" class="menu-link">Cargas de Trabajo</a>
+        <a th:if="${session.usuarioSesion.idRol == 6 and not (session.permisosUsuario.contains('PROD_CARGAS_ASIG') or session.permisosUsuario.contains('PROD_CARGAS_VER'))}" th:href="@{/cargas-trabajo}" class="menu-link">Mis Tareas</a>
+      </div>
+    </div>
+
+    <!-- Calidad -->
+    <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('CAL_DEFECTOS_REG') or session.permisosUsuario.contains('CAL_DEFECTOS_VER'))}">
+      <div class="menu-toggle" onclick="toggleSubmenu(this)">
+        <span><i class='bx bx-check-shield'></i> Calidad</span>
+        <i class='bx bx-chevron-down arrow'></i>
+      </div>
+      <div class="menu-content">
+        <a th:href="@{/defectos}" class="menu-link">Control de Defectos</a>
+      </div>
+    </div>
+
+    <!-- Despacho -->
+    <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('DES_CONCIL_REG') or session.permisosUsuario.contains('DES_CONCIL_VER'))}">
+      <div class="menu-toggle" onclick="toggleSubmenu(this)">
+        <span><i class='bx bx-package'></i> Despacho</span>
+        <i class='bx bx-chevron-down arrow'></i>
+      </div>
+      <div class="menu-content">
+        <a th:href="@{/despacho}" class="menu-link">Conciliación y Despacho</a>
+      </div>
+    </div>
+
+    <!-- Reportes (activo) -->
+    <div class="menu-group active" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('RPT_MERMAS_CALIDAD')}">
+      <div class="menu-toggle" onclick="toggleSubmenu(this)">
+        <span><i class='bx bx-bar-chart-square'></i> Reportes</span>
+        <i class='bx bx-chevron-down arrow'></i>
+      </div>
+      <div class="menu-content">
+        <a th:href="@{/reportes}" class="menu-link activo">Analíticas</a>
+      </div>
+    </div>
+
+    <!-- BackUp -->
+    <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('RPT_MERMAS_CALIDAD')}">
+      <div class="menu-toggle" onclick="toggleSubmenu(this)">
+        <span><i class='bx bx-data'></i> BackUp</span>
+        <i class='bx bx-chevron-down arrow'></i>
+      </div>
+      <div class="menu-content">
+        <a th:href="@{/backup}" class="menu-link">Copias Seguridad</a>
+      </div>
+    </div>
+
+  </nav>
+</aside>
+
+<!-- ═══════════════════════ MAIN ═══════════════════════ -->
+<main>
+  <header>
+    <h2><i class="bx bx-pie-chart-alt-2"></i> Panel de Reportes</h2>
+    <div style="display: flex; align-items: center; gap: 20px;">
+      <div th:replace="~{fragments/notificacion :: campanita}"></div>
+      <div class="user-info">
+        <span th:text="${session.usuarioSesion.nombreCompleto}"></span>
+        <span class="badge-rol" th:text="${rolUsuario}"></span>
+        <a th:href="@{/logout}" class="btn-salir"><i class='bx bx-log-out'></i> Salir</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Error global -->
+  <div th:if="${error != null}" class="alerta-err">
+    <i class='bx bx-error-circle'></i> <span th:text="${error}"></span>
+  </div>
+
+  <!-- ── TABS ── -->
+  <div class="tabs">
+    <button th:if="${esMaquinista}" class="tab-btn active" onclick="openTab(event,'tabRendimiento')">
+      <i class="fa-solid fa-user-gear"></i> Mi Rendimiento
+    </button>
+    <button th:if="${esProduccion}" th:class="${!esMaquinista} ? 'tab-btn active' : 'tab-btn'" onclick="openTab(event,'tabEstrategico')">
+      <i class="fa-solid fa-chess-knight"></i> Estratégico
+    </button>
+    <button th:if="${esSupervisor}" th:class="${(!esProduccion and !esMaquinista)} ? 'tab-btn active' : 'tab-btn'" onclick="openTab(event,'tabEficiencia')">
+      <i class="fa-solid fa-rocket"></i> Supervisión
+    </button>
+    <button th:if="${esTizador}" th:class="${(!esSupervisor and !esMaquinista)} ? 'tab-btn active' : 'tab-btn'" onclick="openTab(event,'tabOperativa')">
+      <i class="fa-solid fa-industry"></i> Preparación / Mermas
+    </button>
+    <button th:if="${esAlmacen}" th:class="${(!esProduccion and !esSupervisor and !esTizador and !esMaquinista)} ? 'tab-btn active' : 'tab-btn'" onclick="openTab(event,'tabAlmacen')">
+      <i class="fa-solid fa-boxes-stacked"></i> Almacén
+    </button>
+  </div>
+
+  <div id="area-reporte">
+
+    <!-- ── CONTROLES DE VISTA ── -->
+    <div class="view-controls">
+      <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap: wrap;">
+        <span><i class="fa-solid fa-eye"></i> Visualización:</span>
+        <button class="btn btn-view" id="btn-modo-tabla"   onclick="setModo('tabla')">  <i class="fa-solid fa-table"></i> Solo Tabla</button>
+        <button class="btn btn-view" id="btn-modo-grafico" onclick="setModo('grafico')"><i class="fa-solid fa-chart-bar"></i> Solo Gráfico</button>
+        <button class="btn btn-view active" id="btn-modo-ambos" onclick="setModo('ambos')"><i class="fa-solid fa-table-columns"></i> Ambos Lados</button>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-pdf"   onclick="exportarPDF()">  <i class="fa-solid fa-file-pdf"></i> Exportar PDF</button>
+        <button class="btn btn-excel" onclick="exportarExcel()"><i class="fa-solid fa-file-excel"></i> Exportar Excel</button>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: MI RENDIMIENTO (Maquinista) ═══ -->
+    <div th:if="${esMaquinista}" id="tabRendimiento" class="tab-content active">
+      <div class="section-title">Mi Rendimiento Personal</div>
+      <div class="grid-container">
+        <div class="card card-grafico">
+          <div class="chart-wrapper"><canvas id="rendimientoChart"></canvas></div>
+        </div>
+        <div class="card card-tabla">
+          <table id="tabla-rendimiento">
+            <thead><tr><th>OT</th><th>Asignado</th><th>Prendas Est.</th><th>Minutos Inv.</th><th>Estado Entrega</th><th>Min/Prenda</th><th>Defectos</th></tr></thead>
+            <tbody>
+              <th:block th:if="${rendimientoMaquinista != null and !#lists.isEmpty(rendimientoMaquinista)}">
+                <tr th:each="rm : ${rendimientoMaquinista}">
+                  <td class="txt-mono" th:text="${rm.codigoOt}"></td>
+                  <td th:text="${rm.fechaAsignada}"></td>
+                  <td th:text="${rm.cantidadEst}"></td>
+                  <td th:text="${rm.minutosTrabajados}"></td>
+                  <td th:class="${#strings.startsWith(rm.eficienciaEntrega,'Retraso')} ? 'txt-danger' : 'txt-success'" th:text="${rm.eficienciaEntrega}"></td>
+                  <td th:text="${rm.velocidadMinPrenda}"></td>
+                  <td th:text="${rm.defectosPropios}"></td>
+                </tr>
+              </th:block>
+              <tr th:if="${rendimientoMaquinista == null or #lists.isEmpty(rendimientoMaquinista)}">
+                <td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">No tienes órdenes completadas aún.</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colspan="2">MIS ACUMULADOS</th>
+                <th th:text="${#aggregates.sum(rendimientoMaquinista.![cantidadEst]) ?: 0} + ' pr'"></th>
+                <th th:text="${#aggregates.sum(rendimientoMaquinista.![minutosTrabajados]) ?: 0} + ' min'"></th>
+                <th>-</th><th>-</th>
+                <th th:text="${#aggregates.sum(rendimientoMaquinista.![defectosPropios]) ?: 0} + ' def'"></th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: ESTRATÉGICO (Producción/Admin) ═══ -->
+    <div th:if="${esProduccion}" id="tabEstrategico" th:class="${!esMaquinista} ? 'tab-content active' : 'tab-content'">
+
+      <div class="section-title">Cruce: Calidad vs Productividad del Maquinista</div>
+      <div class="grid-container">
+        <div class="card card-grafico">
+          <div class="chart-wrapper"><canvas id="scatterChart"></canvas></div>
+        </div>
+        <div class="card card-tabla">
+          <table id="tabla-calidadproductividad">
+            <thead><tr><th>Maquinista</th><th>Minutos Trabajados</th><th>Defectos Generados</th><th>Tasa (Min/Defecto)</th></tr></thead>
+            <tbody>
+              <tr th:each="c : ${calidadVsProductividad}">
+                <td style="font-weight:600;" th:text="${c.maquinista}"></td>
+                <td th:text="${c.minutos}"></td>
+                <td th:text="${c.defectos}"></td>
+                <td th:text="${c.defectos > 0} ? ${#numbers.formatDecimal(c.minutos / c.defectos, 1, 1)} + ' min/def' : 'Perfecto (0 def)'"></td>
+              </tr>
+              <tr th:if="${calidadVsProductividad == null or #lists.isEmpty(calidadVsProductividad)}">
+                <td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">Sin datos disponibles.</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>PROMEDIO GLOBAL</th>
+                <th th:text="${#aggregates.sum(calidadVsProductividad.![minutos]) ?: 0} + ' min'"></th>
+                <th th:text="${#aggregates.sum(calidadVsProductividad.![defectos]) ?: 0} + ' def'"></th>
+                <th>-</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-title">OTs Problemáticas (Top 15 con más Defectos/Merma)</div>
+      <div class="grid-container">
+        <div class="card card-grafico">
+          <div class="chart-wrapper"><canvas id="otsProblematicasChart"></canvas></div>
+        </div>
+        <div class="card card-tabla">
+          <table id="tabla-otsproblematicas">
+            <thead><tr><th>OT</th><th>Cant. Estimada</th><th>Total Merma (Kg)</th><th>Defectos (Reproceso)</th><th>Tasa Falla (%)</th></tr></thead>
+            <tbody>
+              <tr th:each="ot : ${otsProblematicas}">
+                <td class="txt-mono" th:text="${ot.codigoOt}"></td>
+                <td th:text="${ot.cantidadEst}"></td>
+                <td th:text="${ot.merma}"></td>
+                <td th:text="${ot.defectos}"></td>
+                <td class="txt-danger" th:text="${ot.tasaFalla} + '%'"></td>
+              </tr>
+              <tr th:if="${otsProblematicas == null or #lists.isEmpty(otsProblematicas)}">
+                <td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">Sin datos disponibles.</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>TOTAL (Top 15)</th>
+                <th th:text="${#aggregates.sum(otsProblematicas.![cantidadEst]) ?: 0} + ' uds'"></th>
+                <th>-</th>
+                <th th:text="${#aggregates.sum(otsProblematicas.![defectos]) ?: 0} + ' def'"></th>
+                <th>-</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-title">Desviaciones de Despacho (Planeado vs Final)</div>
+      <div class="grid-container">
+        <div class="card card-grafico">
+          <div class="chart-wrapper"><canvas id="desviacionesChart"></canvas></div>
+        </div>
+        <div class="card card-tabla">
+          <table id="tabla-desviaciones">
+            <thead><tr><th>OT</th><th>Planeado</th><th>Finalizado</th><th>Diferencia</th><th>% Desv.</th></tr></thead>
+            <tbody>
+              <tr th:each="d : ${desviacionDespacho}">
+                <td class="txt-mono" th:text="${d.codigoOt}"></td>
+                <td th:text="${d.estimada}"></td>
+                <td th:text="${d.finalPrendas}"></td>
+                <td th:class="${d.diferencia < 0} ? 'txt-danger' : 'txt-success'"
+                    th:text="${d.diferencia >= 0} ? '+' + ${d.diferencia} : ${d.diferencia}"></td>
+                <td th:class="${d.diferencia < 0} ? 'txt-danger' : 'txt-success'"
+                    th:text="${d.estimada > 0} ? ${#numbers.formatDecimal(d.diferencia * 100.0 / d.estimada, 1, 1)} + '%' : '0.0%'"></td>
+              </tr>
+              <tr th:if="${desviacionDespacho == null or #lists.isEmpty(desviacionDespacho)}">
+                <td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">Sin datos de conciliación aún.</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>BALANCE</th>
+                <th th:text="${#aggregates.sum(desviacionDespacho.![estimada]) ?: 0}"></th>
+                <th th:text="${#aggregates.sum(desviacionDespacho.![finalPrendas]) ?: 0}"></th>
+                <th th:text="${#aggregates.sum(desviacionDespacho.![diferencia]) ?: 0}"></th>
+                <th>-</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: SUPERVISIÓN ═══ -->
+    <div th:if="${esSupervisor}" id="tabEficiencia" th:class="${(!esProduccion and !esMaquinista)} ? 'tab-content active' : 'tab-content'">
+
+      <div class="section-title">Eficiencia Global de Órdenes de Trabajo</div>
+      <div class="grid-container">
+        <div class="card card-grafico">
+          <div class="chart-wrapper"><canvas id="eficienciaChart"></canvas></div>
+        </div>
+        <div class="card card-tabla">
+          <table id="tabla-eficiencia">
+            <thead><tr><th>Estado OT</th><th>Cantidad de OTs</th><th>% del Total</th></tr></thead>
+            <tbody>
+              <tr th:each="e : ${eficienciaGlobal}">
+                <td style="font-weight:600;" th:text="${e.estado}"></td>
+                <td th:text="${e.total}"></td>
+                <td th:text="${#aggregates.sum(eficienciaGlobal.![total]) > 0} ? ${#numbers.formatDecimal(e.total * 100.0 / #aggregates.sum(eficienciaGlobal.![total]), 1, 1)} + '%' : '0.0%'"></td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>TOTAL OTs</th>
+                <th th:text="${#aggregates.sum(eficienciaGlobal.![total]) ?: 0}"></th>
+                <th>100%</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-title">Ciclo de Vida Maquinistas por OT</div>
+      <div class="grid-container">
+        <div class="card card-tabla">
+          <table id="tabla-tiempos">
+            <thead><tr><th>OT</th><th>Maquinista</th><th>Inicio Real</th><th>Fin Real</th><th>Trabajo Efectivo</th></tr></thead>
+            <tbody>
+              <tr th:each="t : ${tiemposMaquinistas}">
+                <td class="txt-mono" th:text="${t.codigoOt}"></td>
+                <td th:text="${t.maquinista}"></td>
+                <td th:text="${t.inicioReal}"></td>
+                <td th:text="${t.finReal}"></td>
+                <td class="txt-success" th:text="${t.tiempoFormateado}"></td>
+              </tr>
+              <tr th:if="${tiemposMaquinistas == null or #lists.isEmpty(tiemposMaquinistas)}">
+                <td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">Sin registros de asignaciones completadas.</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colspan="4">TOTAL HORAS EFECTIVAS EN PLANTA</th>
+                <th th:text="${#aggregates.sum(tiemposMaquinistas.![minutosTrabajados]) ?: 0} + ' min'"></th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="card card-grafico">
+          <div class="chart-wrapper"><canvas id="tiemposChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: PREPARACIÓN / MERMAS (Tizador) ═══ -->
+    <div th:if="${esTizador}" id="tabOperativa" th:class="${(!esProduccion and !esSupervisor and !esMaquinista)} ? 'tab-content active' : 'tab-content'">
+
+      <div class="section-title">Merma por Orden de Trabajo</div>
+      <div class="grid-container">
+        <div class="card card-grafico">
+          <div class="chart-wrapper"><canvas id="mermaChart"></canvas></div>
+        </div>
+        <div class="card card-tabla">
+          <table id="tabla-mermas">
+            <thead><tr><th>OT</th><th>Peso Utilizado (Kg)</th><th>Peso Merma (Kg)</th><th>% Merma</th></tr></thead>
+            <tbody>
+              <tr th:each="m : ${mermaPorOT}">
+                <td class="txt-mono" th:text="${m.codigoOt}"></td>
+                <td th:text="${m.pesoUtilizado}"></td>
+                <td th:text="${m.pesoMerma}"></td>
+                <td th:text="${m.porcentajeMerma} + '%'"></td>
+              </tr>
+              <tr th:if="${mermaPorOT == null or #lists.isEmpty(mermaPorOT)}">
+                <td colspan="4" style="text-align:center; color:var(--text-muted); padding:2rem;">No hay registros de merma.</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>HISTÓRICO</th>
+                <th th:text="${mermaPorOT != null} ? ${#numbers.formatDecimal(#aggregates.sum(mermaPorOT.![pesoUtilizado]) ?: 0, 1, 2)} + ' Kg' : '0.00 Kg'"></th>
+                <th th:text="${mermaPorOT != null} ? ${#numbers.formatDecimal(#aggregates.sum(mermaPorOT.![pesoMerma]) ?: 0, 1, 2)} + ' Kg' : '0.00 Kg'"></th>
+                <th>-</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-title">Fallas Registradas por Tipo de Tela</div>
+      <div class="grid-container">
+        <div class="card card-grafico">
+          <div class="chart-wrapper"><canvas id="fallasChart"></canvas></div>
+        </div>
+        <div class="card card-tabla">
+          <table id="tabla-fallas">
+            <thead><tr><th>Código Tela</th><th>Cantidad de Fallas</th><th>% del Total</th></tr></thead>
+            <tbody>
+              <tr th:each="f : ${fallasPorTela}">
+                <td class="txt-mono" th:text="${f.codigoTela}"></td>
+                <td th:text="${f.fallasTotales}"></td>
+                <td th:text="${#aggregates.sum(fallasPorTela.![fallasTotales]) > 0} ? ${#numbers.formatDecimal(f.fallasTotales * 100.0 / #aggregates.sum(fallasPorTela.![fallasTotales]), 1, 1)} + '%' : '0.0%'"></td>
+              </tr>
+              <tr th:if="${fallasPorTela == null or #lists.isEmpty(fallasPorTela)}">
+                <td colspan="3" style="text-align:center; color:var(--text-muted); padding:2rem;">No hay fallas registradas.</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>INCIDENCIAS TOTALES</th>
+                <th th:text="${#aggregates.sum(fallasPorTela.![fallasTotales]) ?: 0}"></th>
+                <th>100%</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TAB: ALMACÉN ═══ -->
+    <div th:if="${esAlmacen}" id="tabAlmacen" th:class="${(!esProduccion and !esSupervisor and !esTizador and !esMaquinista)} ? 'tab-content active' : 'tab-content'">
+
+      <div class="section-title">Inventario de Telas por Estado</div>
+      <div class="grid-container">
+        <div class="card card-tabla">
+          <table id="tabla-inventario">
+            <thead><tr><th>Estado de Calidad</th><th>Rollos/Bultos</th><th>% Rollos</th><th>Peso Total (Kg)</th><th>Peso Promedio/Rollo</th></tr></thead>
+            <tbody>
+              <tr th:each="i : ${inventarioTelas}">
+                <td style="font-weight:600;" th:text="${i.estado}"></td>
+                <td th:text="${i.cantidad}"></td>
+                <td th:text="${#aggregates.sum(inventarioTelas.![cantidad]) > 0} ? ${#numbers.formatDecimal(i.cantidad * 100.0 / #aggregates.sum(inventarioTelas.![cantidad]), 1, 1)} + '%' : '0.0%'"></td>
+                <td th:text="${i.pesoTotal} + ' Kg'"></td>
+                <td th:text="${i.pesoPromedio} + ' Kg'"></td>
+              </tr>
+              <tr th:if="${inventarioTelas == null or #lists.isEmpty(inventarioTelas)}">
+                <td colspan="5" style="text-align:center; color:var(--text-muted); padding:2rem;">No hay telas en inventario.</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>TOTAL ALMACÉN</th>
+                <th th:text="${#aggregates.sum(inventarioTelas.![cantidad]) ?: 0} + ' rollos'"></th>
+                <th>100%</th>
+                <th>-</th><th>-</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="card card-grafico">
+          <div class="chart-wrapper"><canvas id="inventarioChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /area-reporte -->
+</main>
+
+<!-- ═══════════════════════ JAVASCRIPT ═══════════════════════ -->
+<script th:inline="javascript">
+  // ── SIDEBAR ACORDEÓN ──────────────────────────────────────
+  function toggleSubmenu(el) { el.parentElement.classList.toggle('active'); }
+
+  // ── TABS ─────────────────────────────────────────────────
+  function openTab(evt, tabName) {
+    document.querySelectorAll('.tab-content').forEach(t => { t.style.display='none'; t.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const tab = document.getElementById(tabName);
+    if (tab) { tab.style.display='block'; tab.classList.add('active'); }
+    evt.currentTarget.classList.add('active');
+  }
+
+  // ── MODO VISUALIZACIÓN ───────────────────────────────────
+  function setModo(modo) {
+    document.body.className = 'modo-' + modo;
+    ['tabla','grafico','ambos'].forEach(m => document.getElementById('btn-modo-'+m).classList.remove('active'));
+    document.getElementById('btn-modo-'+modo).classList.add('active');
+    document.querySelectorAll('.grid-container').forEach(g => {
+      g.className = 'grid-container';
+      if (modo==='tabla')   g.classList.add('solo-tabla');
+      if (modo==='grafico') g.classList.add('solo-grafico');
+    });
+    if (Chart && Chart.instances) {
+      Object.keys(Chart.instances).forEach(k => Chart.instances[k].resize());
+    }
+  }
+
+  // ── EXPORTAR PDF ──────────────────────────────────────────
+  function exportarPDF() {
+    const el = document.querySelector('.tab-content.active');
+    html2pdf().set({
+      margin: 10, filename: 'reporte-textil.pdf',
+      image: { type:'jpeg', quality:0.98 },
+      html2canvas: { scale:2 },
+      jsPDF: { unit:'mm', format:'a4', orientation:'landscape' }
+    }).from(el).save();
+  }
+
+  // ── EXPORTAR EXCEL ────────────────────────────────────────
+  function exportarExcel() {
+    const wb = XLSX.utils.book_new();
+    const tablas = document.querySelectorAll('.tab-content.active table');
+    if (!tablas.length) { alert('No hay tablas en la pestaña actual.'); return; }
+    tablas.forEach(tabla => {
+      if (tabla.rows.length > 2) {
+        const ws = XLSX.utils.table_to_sheet(tabla);
+        XLSX.utils.book_append_sheet(wb, ws, tabla.id.replace('tabla-','').substring(0,31).toUpperCase());
+      }
+    });
+    XLSX.writeFile(wb, 'Reportes_Textil.xlsx');
+  }
+
+  // ── CHARTS ───────────────────────────────────────────────
+  Chart.defaults.maintainAspectRatio = false;
+
+  window.onload = function() {
+
+    // ▶ Scatter: Calidad vs Productividad
+    const cvpData = /*[[${calidadVsProductividad}]]*/ [];
+    const scatLabels = [], scatData = [];
+    if (cvpData) cvpData.forEach(c => { scatLabels.push(c.maquinista); scatData.push({ x: c.minutos, y: c.defectos }); });
+    const scCtx = document.getElementById('scatterChart');
+    if (scCtx && scatData.length) {
+      new Chart(scCtx, {
+        type: 'scatter',
+        data: { labels: scatLabels, datasets: [{ label:'Maquinistas', data: scatData, backgroundColor:'#e74c3c', pointRadius:6, pointHoverRadius:8 }] },
+        options: {
+          responsive: true,
+          plugins: { title:{ display:true, text:'Productividad (X) vs Calidad (Y)' },
+            tooltip:{ callbacks:{ label: ctx => scatLabels[ctx.dataIndex]+': '+ctx.raw.x+' min, '+ctx.raw.y+' def' }}},
+          scales: {
+            x: { title:{ display:true, text:'Minutos Totales Trabajados' }},
+            y: { title:{ display:true, text:'Defectos Generados' }}
+          }
+        }
+      });
+    }
+
+    // ▶ Bar: OTs Problemáticas
+    const otProbData = /*[[${otsProblematicas}]]*/ [];
+    const otPLabels = [], otPDef = [], otPMerma = [];
+    if (otProbData) otProbData.forEach(o => { otPLabels.push(o.codigoOt); otPDef.push(o.defectos); otPMerma.push(o.merma); });
+    const otpCtx = document.getElementById('otsProblematicasChart');
+    if (otpCtx && otPLabels.length) {
+      new Chart(otpCtx, {
+        type: 'bar',
+        data: { labels: otPLabels, datasets: [
+          { label:'Defectos',    data:otPDef,   backgroundColor:'#c0392b', yAxisID:'y' },
+          { label:'Merma (Kg)', data:otPMerma, backgroundColor:'#d35400', yAxisID:'y1' }
+        ]},
+        options: {
+          responsive: true,
+          plugins:{ title:{ display:true, text:'Defectos y Mermas por OT' }},
+          scales:{
+            y:  { type:'linear', display:true, position:'left',  title:{ display:true, text:'Cant. Defectos' }},
+            y1: { type:'linear', display:true, position:'right', grid:{ drawOnChartArea:false }, title:{ display:true, text:'Merma (Kg)' }}
+          }
+        }
+      });
+    }
+
+    // ▶ Bar: Desviaciones Despacho
+    const despData = /*[[${desviacionDespacho}]]*/ [];
+    const dLabels = [], dEst = [], dFin = [];
+    if (despData) despData.forEach(d => { dLabels.push(d.codigoOt); dEst.push(d.estimada); dFin.push(d.finalPrendas); });
+    const desvCtx = document.getElementById('desviacionesChart');
+    if (desvCtx && dLabels.length) {
+      new Chart(desvCtx, {
+        type: 'bar',
+        data: { labels: dLabels, datasets: [
+          { label:'Proyectado (Est)',    data:dEst, backgroundColor:'#7f8c8d' },
+          { label:'Despachado (Final)', data:dFin, backgroundColor:'#27ae60' }
+        ]},
+        options: { responsive:true, plugins:{ title:{ display:true, text:'Proyectado vs Despachado por OT' }}}
+      });
+    }
+
+    // ▶ Doughnut: Eficiencia Global
+    const efiData = /*[[${eficienciaGlobal}]]*/ [];
+    const eLabels = [], eVals = [];
+    if (efiData) efiData.forEach(e => { eLabels.push(e.estado); eVals.push(e.total); });
+    const efiCtx = document.getElementById('eficienciaChart');
+    if (efiCtx && eLabels.length) {
+      new Chart(efiCtx, {
+        type: 'doughnut',
+        data: { labels:eLabels, datasets:[{ data:eVals, backgroundColor:['#2ecc71','#e74c3c','#f1c40f','#3498db','#9b59b6'] }]},
+        options:{ responsive:true, plugins:{ title:{ display:true, text:'Eficiencia de Órdenes de Trabajo' }}}
+      });
+    }
+
+    // ▶ Bar horizontal: Tiempos Maquinistas
+    const tMaqData = /*[[${tiemposMaquinistas}]]*/ [];
+    const tLabels = [], tVals = [];
+    if (tMaqData) tMaqData.slice(0,10).forEach(t => { tLabels.push(t.maquinista); tVals.push(t.minutosTrabajados); });
+    const tCtx = document.getElementById('tiemposChart');
+    if (tCtx && tLabels.length) {
+      new Chart(tCtx, {
+        type: 'bar',
+        data: { labels:tLabels, datasets:[{ label:'Minutos', data:tVals, backgroundColor:'rgba(52,152,219,0.7)', borderRadius:4 }]},
+        options:{ indexAxis:'y', responsive:true, plugins:{ title:{ display:true, text:'Top 10 Tiempos Maquinistas' }}}
+      });
+    }
+
+    // ▶ Bar: Merma por OT
+    const merData = /*[[${mermaPorOT}]]*/ [];
+    const mLabels = [], mVals = [];
+    if (merData) merData.forEach(m => { mLabels.push(m.codigoOt); mVals.push(m.porcentajeMerma); });
+    const merCtx = document.getElementById('mermaChart');
+    if (merCtx && mLabels.length) {
+      new Chart(merCtx, {
+        type: 'bar',
+        data: { labels:mLabels, datasets:[{ label:'% Merma', data:mVals, backgroundColor:'rgba(231,76,60,0.7)', borderRadius:4 }]},
+        options:{ responsive:true, plugins:{ title:{ display:true, text:'% de Merma por OT' }}}
+      });
+    }
+
+    // ▶ Pie: Fallas por Tela
+    const fallData = /*[[${fallasPorTela}]]*/ [];
+    const fLabels = [], fVals = [];
+    if (fallData) fallData.forEach(f => { fLabels.push(f.codigoTela); fVals.push(f.fallasTotales); });
+    const fCtx = document.getElementById('fallasChart');
+    if (fCtx && fLabels.length) {
+      new Chart(fCtx, {
+        type: 'pie',
+        data: { labels:fLabels, datasets:[{ data:fVals, backgroundColor:['#f1c40f','#e67e22','#e74c3c','#9b59b6','#34495e'] }]},
+        options:{ responsive:true, plugins:{ title:{ display:true, text:'Incidencias por Tipo de Tela' }}}
+      });
+    }
+
+    // ▶ Inventario Telas
+    const invData = /*[[${inventarioTelas}]]*/ [];
+    const iLabels = [], iVals = [];
+    if (invData) invData.forEach(i => { iLabels.push(i.estado); iVals.push(i.cantidad); });
+    const iCtx = document.getElementById('inventarioChart');
+    if (iCtx && iLabels.length) {
+      new Chart(iCtx, {
+        type: 'bar',
+        data: { labels:iLabels, datasets:[{ label:'Rollos en Stock', data:iVals, backgroundColor:'#1abc9c', borderRadius:4 }]},
+        options:{ responsive:true, plugins:{ title:{ display:true, text:'Estado Físico del Inventario' }}}
+      });
+    }
+
+    // ▶ Line+Bar: Rendimiento Maquinista
+    const rendData = /*[[${rendimientoMaquinista}]]*/ [];
+    const rLabels = [], rVel = [], rDef = [];
+    if (rendData) rendData.slice(0,10).forEach(r => { rLabels.push(r.codigoOt); rVel.push(r.velocidadMinPrenda); rDef.push(r.defectosPropios); });
+    const rCtx = document.getElementById('rendimientoChart');
+    if (rCtx && rLabels.length) {
+      new Chart(rCtx, {
+        type: 'line',
+        data: { labels:rLabels, datasets:[
+          { label:'Velocidad (Min/Prenda)', data:rVel, borderColor:'#3498db', backgroundColor:'#3498db', yAxisID:'y' },
+          { label:'Defectos', data:rDef, type:'bar', backgroundColor:'rgba(231,76,60,0.5)', yAxisID:'y1' }
+        ]},
+        options:{
+          responsive:true,
+          plugins:{ title:{ display:true, text:'Historial de Mi Rendimiento (Últimas OTs)' }},
+          scales:{
+            y:  { type:'linear', display:true, position:'left',  title:{ display:true, text:'Min/Prenda' }},
+            y1: { type:'linear', display:true, position:'right', grid:{ drawOnChartArea:false }, title:{ display:true, text:'Defectos' }}
+          }
+        }
+      });
+    }
+  };
+</script>
+</body>
+</html>

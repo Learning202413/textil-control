@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="campanita">
+
+    <style>
+        .badge-notif {
+            display: none; background:var(--danger-hover, #dc2626); color:white;
+            border-radius:20px; padding:2px 6px; font-size:0.7rem; position:absolute;
+            top:-8px; right:-10px; font-weight:bold;
+        }
+
+        /* 🔥 Corrección de coordenadas aquí 🔥 */
+        #notif-panel {
+            display:none;
+            position:absolute;
+            right: -15px;      /* Alinea el panel justo al borde de la campana */
+            top: 45px;         /* Lo empuja exactamente hacia abajo */
+            background:var(--color-surface, #fff);
+            border:1px solid var(--border-color, #e2e8f0);
+            width:320px;
+            max-height:400px;
+            overflow-y:auto;
+            z-index:9999;      /* Z-index altísimo para que pase por encima de tablas y menús */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border-radius:var(--radius-md, 8px);
+        }
+
+        .notif-header {
+            padding:12px 16px; background:#f8fafc;
+            border-bottom:1px solid var(--border-color, #e2e8f0);
+            font-weight:600; color:var(--text-main, #334155);
+        }
+    </style>
+
+    <div style="position: relative;">
+        <div class="notificacion-icon" style="position: relative; cursor: pointer;">
+            <i class='bx bx-bell' style="font-size:1.4rem; color:var(--text-muted, #64748b);"></i>
+            <span id="notif-badge" class="badge-notif">0</span>
+        </div>
+
+        <div id="notif-panel">
+            <div class="notif-header"><i class='bx bx-bell'></i> Notificaciones</div>
+            <div id="notif-list"></div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        // Usamos un IIFE para no chocar con variables de otras páginas
+        (function() {
+            document.addEventListener('DOMContentLoaded', () => {
+                actualizarNotificaciones();
+                setInterval(actualizarNotificaciones, 30000);
+
+                const btnNotif = document.querySelector('.notificacion-icon');
+                if (btnNotif) btnNotif.addEventListener('click', toggleNotificaciones);
+            });
+
+            function actualizarNotificaciones() {
+                const url = /*[[@{/notificaciones}]]*/ '/notificaciones';
+                fetch(url + '?accion=listarNoLeidas')
+                    .then(res => res.json())
+                    .then(data => {
+                        const badge = document.getElementById('notif-badge');
+                        if (badge) {
+                            if (data.length > 0) {
+                                badge.textContent = data.length;
+                                badge.style.display = 'inline-block';
+                            } else { badge.style.display = 'none'; }
+                        }
+                    }).catch(console.error);
+            }
+
+            window.toggleNotificaciones = function() {
+                const panel = document.getElementById('notif-panel');
+                const url = /*[[@{/notificaciones}]]*/ '/notificaciones';
+
+                if (panel.style.display === 'none') {
+                    document.getElementById('notif-list').innerHTML = '<div style="padding:16px; text-align:center; color:#64748b;"><i class="bx bx-loader-alt bx-spin"></i> Cargando...</div>';
+                    panel.style.display = 'block';
+
+                    fetch(url + '?limite=20')
+                        .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+                        .then(data => {
+                            const listaDiv = document.getElementById('notif-list');
+                            listaDiv.innerHTML = '';
+                            if (data.length === 0) { listaDiv.innerHTML = '<div style="padding:16px; text-align:center; color:#64748b;">No hay notificaciones nuevas</div>'; return; }
+
+                            data.forEach(notif => {
+                                const div = document.createElement('div');
+                                div.style.padding = '12px 16px';
+                                div.style.borderBottom = '1px solid #e2e8f0';
+                                div.style.backgroundColor = notif.leida ? '#ffffff' : '#f0f4f8';
+                                const fontWeight = notif.leida ? 'normal' : '600';
+                                const colorTit = notif.leida ? '#64748b' : '#0f3460';
+                                const colorMsj = notif.leida ? '#64748b' : '#334155';
+                                const titulo = notif.titulo || 'Notificación';
+                                const mensaje = notif.mensaje || 'Sin detalles';
+                                const fechaStr = notif.fechaCreacion ? new Date(notif.fechaCreacion).toLocaleString() : '';
+
+                                div.innerHTML =
+                                    '<strong style="color:' + colorTit + '; font-size:0.85rem; display:block; font-weight:' + fontWeight + ';">' + titulo + '</strong>' +
+                                    '<small style="color:#cbd5e1; font-size:0.75rem;">' + fechaStr + '</small>' +
+                                    '<p style="margin:6px 0 0; font-size:0.85rem; color:' + colorMsj + '; line-height:1.4;">' + mensaje + '</p>';
+                                listaDiv.appendChild(div);
+
+                                if (!notif.leida && notif.idNotificacion) {
+                                    fetch(url + '/marcarLeida?id=' + notif.idNotificacion);
+                                }
+                            });
+                            actualizarNotificaciones();
+                        }).catch(err => {
+                        document.getElementById('notif-list').innerHTML = '<div style="padding:16px; color:#dc2626; text-align:center;"><i class="bx bx-error"></i> Error al cargar data</div>';
+                    });
+                } else {
+                    panel.style.display = 'none';
+                }
+            }
+        })();
+    </script>
+</div>
+
+</body>
+</html>

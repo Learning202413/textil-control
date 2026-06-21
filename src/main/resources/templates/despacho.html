@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conciliación y Despacho (HU07) – Sistema Textil</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        :root {
+            --color-primary: #0f3460; --color-primary-hover: #1a5ca8;
+            --color-secondary: #1a1a2e; --color-accent: #e2b96f;
+            --color-bg: #f4f6f8; --color-surface: #ffffff;
+            --text-main: #334155; --text-muted: #64748b; --text-light: #cbd5e1;
+            --border-color: #e2e8f0;
+            --success-bg: #d1fae5; --success-text: #065f46;
+            --danger-bg: #fee2e2; --danger-text: #991b1b; --danger-hover: #dc2626;
+            --warning-bg: #fef3c7; --warning-text: #92400e;
+            --info-bg: #e0f2fe; --info-text: #0369a1;
+            --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--color-bg); display: flex; min-height: 100vh; color: var(--text-main); }
+
+        aside { width: 250px; background: var(--color-secondary); color: var(--text-light); display: flex; flex-direction: column; flex-shrink: 0; }
+        .logo { padding: 24px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--color-accent); font-weight: 700; font-size: 1.1rem; display:flex; flex-direction: column; gap: 4px;}
+        .logo span { font-size: 0.75rem; color: #94a3b8; font-weight: 400; }
+
+        /* ── SIDEBAR CON MENÚ ACORDEÓN ── */
+        .sidebar-nav { display: flex; flex-direction: column; gap: 4px; padding: 16px 12px; }
+
+        .menu-link { display: flex; align-items: center; gap: 10px; padding: 10px 14px; color: var(--text-light); text-decoration: none; font-size: 0.88rem; border-radius: var(--radius-sm); transition: all 0.2s; }
+        .menu-link i { font-size: 1.2rem; }
+        .menu-link:hover, .menu-link.activo { background: rgba(15, 52, 96, 0.5); color: #fff; }
+        .menu-link.activo { position: relative; }
+        .menu-link.activo::before { content:''; position: absolute; left: 0; top: 15%; bottom: 15%; width: 4px; background: var(--color-accent); border-radius: 0 4px 4px 0; }
+
+        .menu-group { margin-bottom: 2px; }
+        .menu-toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; border-radius: var(--radius-sm); transition: all 0.2s; user-select: none; }
+        .menu-toggle span { display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;}
+        .menu-toggle span i { font-size: 1.1rem; }
+        .menu-toggle:hover { color: var(--text-light); background: rgba(255,255,255,0.05); }
+        .menu-toggle .arrow { transition: transform 0.3s ease; font-size: 1.1rem;}
+
+        .menu-group.active .menu-toggle .arrow { transform: rotate(180deg); }
+        .menu-group.active .menu-toggle { color: #fff; }
+
+        .menu-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; display: flex; flex-direction: column; gap: 2px; }
+        .menu-group.active .menu-content { max-height: 400px; margin-top: 4px; }
+        .menu-content .menu-link { padding-left: 36px; font-size: 0.85rem; }
+
+        main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        header { background: var(--color-surface); padding: 0.9rem 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.02); z-index: 10;}
+        header h2 { font-size: 1.15rem; color: var(--color-secondary); font-weight: 600; display:flex; align-items:center; gap:8px;}
+        .user-info { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; font-weight: 500; }
+        .badge { background: #e2e8f0; color: var(--text-main); padding: 0.25rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; }
+        .btn-salir { padding: 0.35rem 0.8rem; border: 1px solid var(--danger-hover); color: var(--danger-hover); border-radius: var(--radius-sm); font-size: 0.8rem; font-weight: 600; text-decoration: none; display:flex; align-items:center; gap:5px; transition:0.2s;}
+        .btn-salir:hover { background: var(--danger-hover); color: #fff; }
+        .contenido { flex: 1; padding: 24px; overflow-y: auto; }
+
+        .alerta { padding: 12px 16px; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+        .alerta-ok { background: var(--success-bg); color: var(--success-text); border: 1px solid #a7f3d0; }
+        .alerta-err { background: var(--danger-bg); color: var(--danger-text); border: 1px solid #fecaca; }
+
+        .section-title { margin-bottom: 16px; }
+        .section-title h3 { color: var(--color-secondary); font-size: 1.15rem; font-weight: 600; margin-bottom: 4px; }
+        .section-title p { font-size: 0.85rem; color: var(--text-muted); }
+
+        .filtro-wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; background: var(--color-surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.04);}
+        .filtro-wrap > div { display: flex; flex-direction: column; gap: 6px; }
+        .filtro-wrap label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); display:flex; align-items:center; gap:4px;}
+        .form-control { width: 100%; padding: 0.55rem 1rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--text-main); background: var(--color-surface); transition: all 0.2s; outline: none; }
+        .form-control:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1); }
+        .btn-outline { background: var(--color-surface); color: var(--text-main); border: 1px solid var(--border-color); padding: 0.55rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: 0.2s; display:flex; align-items:center; gap:4px;}
+        .btn-outline:hover { background: var(--color-bg); }
+
+        .card { background: var(--color-surface); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.04);}
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
+        th { background: #f8fafc; color: var(--text-muted); font-weight: 600; padding: 12px 16px; text-align: left; border-bottom: 2px solid var(--border-color); text-transform: uppercase; font-size: 0.72rem; }
+        td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; color:var(--text-main);}
+        tr:hover td { background: #f8fafc; }
+        .sin-datos { text-align: center; padding: 48px; color: var(--text-muted); }
+        .sin-datos .ico { font-size: 3rem; display: block; margin-bottom: 12px; color:var(--text-light); }
+
+        /* ── CHIPS ── */
+        .chip { display: inline-flex; align-items: center; justify-content: center; gap:4px; padding: 0.35rem 0; border-radius: 6px; font-size: 0.75rem; font-weight: 600; min-width: 130px; text-align: center; }
+        .chip-pendiente    { background: #f1f5f9; color: var(--text-muted); }
+        .chip-ok           { background: var(--success-bg); color: var(--success-text); }
+        .chip-merma        { background: var(--danger-bg); color: var(--danger-text); }
+        .chip-despachado   { background: var(--info-bg); color: var(--info-text); }
+        .chip-estimado     { background: var(--info-bg); color: var(--info-text); }
+
+        .dif-cero    { color: var(--success-text); font-weight: 700; }
+        .dif-merma   { color: var(--danger-hover); font-weight: 700; }
+        .dif-ganancia { color: var(--info-text); font-weight: 700; }
+
+        /* ── BOTONES ACCIÓN ── */
+        .btn-accion { display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; color: #fff; min-width: 120px; text-decoration: none; transition: .2s; }
+        .btn-conciliar  { background: #d97706; }
+        .btn-conciliar:hover { background: #b45309; }
+        .btn-despachar  { background: var(--color-primary); }
+        .btn-despachar:hover { background: var(--color-primary-hover); }
+
+        /* ── MODALES ── */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,.5); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        .overlay.activo { display: flex; }
+        .modal { background: var(--color-surface); border-radius: var(--radius-md); width: 100%; max-width: 520px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,.15); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+        .modal-header h3 { color: var(--color-secondary); font-size: 1.1rem; font-weight: 600; display:flex; align-items:center; gap:8px;}
+        .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-light); transition: .2s; }
+        .close-modal:hover { color: var(--text-main); }
+
+        .estimado-panel { background: var(--color-secondary); color: #fff; border-radius: var(--radius-sm); padding: 16px 24px; text-align: center; margin-bottom: 24px; }
+        .estimado-panel .lbl { font-size: 0.8rem; color: var(--text-light); text-transform: uppercase; margin-bottom: 8px; font-weight:600; letter-spacing:0.5px;}
+        .estimado-panel .num { font-size: 2.5rem; font-weight: 800; color: var(--color-accent); line-height:1;}
+
+        label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 6px; }
+        textarea { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 16px; font-family: inherit; font-size: 0.85rem; transition: border-color .2s; resize: vertical; min-height: 70px; }
+        textarea:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1); }
+
+        .alerta-diferencia { background: var(--warning-bg); color: #92400e; border-left: 4px solid var(--warning-text); padding: 12px 16px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 16px; display: none; text-align: center; }
+        .btn-guardar { width: 100%; padding: 0.75rem; color: #fff; background: var(--color-primary); border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: .2s; display:flex; align-items:center; justify-content:center; gap:6px;}
+        .btn-guardar:hover { background: var(--color-primary-hover); }
+    </style>
+</head>
+<body>
+
+<aside>
+    <div class="logo">
+        <div style="display:flex; align-items:center; gap:8px;"><i class='bx bxs-layer'></i> Textil Control</div>
+        <span>Sistema de Producción</span>
+    </div>
+    <nav class="sidebar-nav">
+        <a th:href="@{/dashboard}" class="menu-link"><i class='bx bx-home-alt'></i> Dashboard</a>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('SEG_USUARIOS_VER')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)"><span><i class='bx bx-shield-quarter'></i> Administración</span><i class='bx bx-chevron-down arrow'></i></div>
+            <div class="menu-content">
+                <a th:href="@{/gestion-usuarios}" class="menu-link">Usuarios</a>
+                <a th:href="@{/gestion-especialidades}" class="menu-link">Especialidades</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('CAT_TELAS_VER') or session.permisosUsuario.contains('CAT_MODELOS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)"><span><i class='bx bx-folder'></i> Catálogos</span><i class='bx bx-chevron-down arrow'></i></div>
+            <div class="menu-content">
+                <a th:if="${session.permisosUsuario.contains('CAT_TELAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/catalogo-telas}" class="menu-link">Catálogo Telas</a>
+                <a th:if="${session.permisosUsuario.contains('CAT_MODELOS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/catalogo-modelos}" class="menu-link">Catálogo Modelos</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('ALM_TELA_VER') or session.permisosUsuario.contains('PROD_MAQUINISTAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)"><span><i class='bx bx-store'></i> Almacén</span><i class='bx bx-chevron-down arrow'></i></div>
+            <div class="menu-content">
+                <a th:if="${session.permisosUsuario.contains('ALM_TELA_VER')}" th:href="@{/inventario}" class="menu-link">Tela Recibida</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_MAQUINISTAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/maquinistas}" class="menu-link">Maquinistas</a>
+            </div>
+        </div>
+
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('PROD_OT_VER') or session.permisosUsuario.contains('PROD_REPOSO_VER') or session.permisosUsuario.contains('PROD_FALLAS_VER') or session.permisosUsuario.contains('PROD_MERMA_VER') or session.permisosUsuario.contains('PROD_CARGAS_ASIG') or session.permisosUsuario.contains('PROD_CARGAS_VER') or session.usuarioSesion.idRol == 6 or session.usuarioSesion.nombreRol == 'ADMINISTRADOR')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)"><span><i class='bx bx-cog'></i> Producción</span><i class='bx bx-chevron-down arrow'></i></div>
+            <div class="menu-content">
+                <a th:if="${session.permisosUsuario.contains('PROD_OT_VER')}" th:href="@{/ordenes-trabajo}" class="menu-link">Órdenes de Trabajo</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_REPOSO_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/tiempos-reposo}" class="menu-link">Tiempos de Reposo</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_FALLAS_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/fallas-tela}" class="menu-link">Mapa de Fallas</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_MERMA_VER') or session.usuarioSesion.nombreRol == 'ADMINISTRADOR'}" th:href="@{/mermas}" class="menu-link">Mermas</a>
+                <a th:if="${session.permisosUsuario.contains('PROD_CARGAS_ASIG') or session.permisosUsuario.contains('PROD_CARGAS_VER')}" th:href="@{/cargas-trabajo}" class="menu-link">Cargas de Trabajo</a>
+                <a th:if="${session.usuarioSesion.idRol == 6 and not session.permisosUsuario.contains('PROD_CARGAS_ASIG')}" th:href="@{/cargas-trabajo}" class="menu-link">Mis Tareas</a>
+            </div>
+        </div>
+
+        <!-- CALIDAD -->
+        <div class="menu-group" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('CAL_DEFECTOS_REG') or session.permisosUsuario.contains('CAL_DEFECTOS_VER'))}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-check-shield'></i> Calidad</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/defectos}" class="menu-link">Control de Defectos</a>
+            </div>
+        </div>
+
+        <!-- DESPACHO -->
+        <div class="menu-group active" th:if="${session.permisosUsuario != null and (session.permisosUsuario.contains('DES_CONCIL_REG') or session.permisosUsuario.contains('DES_CONCIL_VER'))}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-package'></i> Despacho</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/despacho}" class="menu-link activo">Conciliación y Despacho</a>
+            </div>
+        </div>
+
+        <!-- REPORTES -->
+        <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('RPT_MERMAS_CALIDAD')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-bar-chart-square'></i> Reportes</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/reportes}" class="menu-link">Analíticas</a>
+            </div>
+        </div>
+
+        <!-- BACKUP -->
+        <div class="menu-group" th:if="${session.permisosUsuario != null and session.permisosUsuario.contains('RPT_MERMAS_CALIDAD')}">
+            <div class="menu-toggle" onclick="toggleSubmenu(this)">
+                <span><i class='bx bx-data'></i> BackUp</span>
+                <i class='bx bx-chevron-down arrow'></i>
+            </div>
+            <div class="menu-content">
+                <a th:href="@{/backup}" class="menu-link">Copias Seguridad</a>
+            </div>
+        </div>
+    </nav>
+</aside>
+
+<main>
+    <header>
+        <h2><i class='bx bx-truck'></i> Conciliación y Despacho Final</h2>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div th:replace="~{fragments/notificacion :: campanita}"></div>
+        <div class="user-info">
+            <span th:text="${session.usuarioSesion != null ? session.usuarioSesion.nombreCompleto : 'Admin'}"></span>
+            <span class="badge" th:text="${session.usuarioSesion != null ? session.usuarioSesion.nombreRol : 'Sin Rol'}"></span>
+            <a th:href="@{/logout}" class="btn-salir"><i class='bx bx-log-out'></i> Cerrar sesión</a>
+        </div></div>
+    </header>
+
+    <div class="contenido">
+
+        <div th:if="${exito}" class="alerta alerta-ok"><i class='bx bx-check-circle'></i> <span th:text="${exito}"></span></div>
+        <div th:if="${error}" class="alerta alerta-err"><i class='bx bx-error-circle'></i> <span th:text="${error}"></span></div>
+
+        <div class="section-title">
+            <h3>Lotes Terminados Listos para Conciliación y Despacho</h3>
+            <p>Valide el conteo físico final contra el estimado de tizado para detectar diferencias de inventario.</p>
+        </div>
+
+        <div class="filtro-wrap">
+            <div>
+                <label><i class='bx bx-search'></i> Código OT</label>
+                <input type="text" id="filtroOt" class="form-control" placeholder="Ej: OT-2026-001" style="width: 160px;">
+            </div>
+            <div>
+                <label><i class='bx bx-buildings'></i> Cliente</label>
+                <input type="text" id="filtroCliente" class="form-control" placeholder="Nombre cliente" style="width: 180px;">
+            </div>
+            <div>
+                <label><i class='bx bx-filter'></i> Estado</label>
+                <select id="filtroEstado" class="form-control" style="width: 150px;">
+                    <option value="">-- Todos --</option>
+                </select>
+            </div>
+            <div>
+                <label><i class='bx bx-closet'></i> Modelo</label>
+                <select id="filtroModelo" class="form-control" style="width: 180px;">
+                    <option value="">-- Todos --</option>
+                </select>
+            </div>
+            <div>
+                <button id="btnLimpiarFiltros" class="btn-outline"><i class='bx bx-eraser'></i> Limpiar filtros</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div th:if="${#lists.isEmpty(lotes)}" class="sin-datos">
+                <i class='bx bx-truck ico'></i>
+                No hay lotes FINALIZADOS pendientes de conciliación o despacho.
+            </div>
+
+            <table th:unless="${#lists.isEmpty(lotes)}">
+                <thead>
+                <tr>
+                    <th>OT #</th><th>Cliente</th><th>Modelo</th><th style="text-align:center;">Estimado</th><th style="text-align:center;">Conteo Final</th><th style="text-align:center;">Diferencia</th><th style="text-align:center;">Estado</th><th style="text-align:center;">Acciones</th>
+                </tr>
+                </thead>
+                <tbody id="tbodyDespacho">
+                <tr th:each="c : ${lotes}" th:with="estadoNombre=${c.estado != null ? c.estado : 'PENDIENTE'}" th:attr="data-ot=${c.codigoOt}, data-cliente=${c.cliente}, data-modelo=${c.nombreModelo != null ? c.nombreModelo : '-'}, data-estado=${estadoNombre}">
+                    <td><strong th:text="${c.codigoOt}"></strong></td>
+                    <td th:text="${c.cliente}"></td>
+                    <td th:text="${c.nombreModelo != null ? c.nombreModelo : '-'}"></td>
+                    <td style="text-align:center;"><span class="chip chip-estimado" th:text="${c.cantidadEstimada} + ' unds'"></span></td>
+
+                    <td style="text-align:center;">
+                        <span th:if="${estadoNombre == 'PENDIENTE'}" style="color:var(--text-light); font-style: italic;">—</span>
+                        <strong th:if="${estadoNombre != 'PENDIENTE' and c.cantidadFinal < c.cantidadEstimada}" style="color:var(--danger-hover);" th:text="${c.cantidadFinal} + ' unds'"></strong>
+                        <strong th:if="${estadoNombre != 'PENDIENTE' and c.cantidadFinal >= c.cantidadEstimada}" th:text="${c.cantidadFinal} + ' unds'"></strong>
+                    </td>
+
+                    <td style="text-align:center;">
+                        <span th:if="${estadoNombre == 'PENDIENTE'}" style="color:var(--text-light);">—</span>
+                        <span th:if="${estadoNombre != 'PENDIENTE' and c.diferencia == 0}" class="dif-cero">0</span>
+                        <span th:if="${estadoNombre != 'PENDIENTE' and c.diferencia < 0}" class="dif-merma" th:text="${c.diferencia}"></span>
+                        <span th:if="${estadoNombre != 'PENDIENTE' and c.diferencia > 0}" class="dif-ganancia" th:text="'+' + ${c.diferencia}"></span>
+                    </td>
+
+                    <td style="text-align:center;">
+                        <span th:if="${estadoNombre == 'PENDIENTE'}" class="chip chip-pendiente"><i class='bx bx-time-five'></i> Pendiente</span>
+                        <span th:if="${estadoNombre == 'CONCILIADO_OK'}" class="chip chip-ok"><i class='bx bx-check'></i> Conciliado OK</span>
+                        <span th:if="${estadoNombre == 'MERMA_DETECTADA'}" class="chip chip-merma"><i class='bx bx-error'></i> Merma Detectada</span>
+                        <span th:if="${estadoNombre == 'DESPACHADO'}" class="chip chip-despachado"><i class='bx bx-check-double'></i> Despachado</span>
+                    </td>
+
+                    <td style="text-align:center;">
+                        <button th:if="${estadoNombre == 'PENDIENTE'}" class="btn-accion btn-conciliar"
+                                th:data-idot="${c.idOt}"
+                                th:data-estimada="${c.cantidadEstimada}"
+                                th:data-codigo="${c.codigoOt}"
+                                th:data-ensamblaje="${c.cantidadEnsamblaje}"
+                                onclick="abrirConciliacion(this.getAttribute('data-idot'), this.getAttribute('data-estimada'), this.getAttribute('data-codigo'), this.getAttribute('data-ensamblaje'))">
+                            <i class='bx bx-check-square'></i> Conciliar
+                        </button>
+
+                        <button th:if="${estadoNombre == 'CONCILIADO_OK' or estadoNombre == 'MERMA_DETECTADA'}"
+                                type="button" class="btn-accion btn-despachar"
+                                th:data-id="${c.idConciliacion}" th:data-codigo="${c.codigoOt}"
+                                onclick="abrirModalDespachar(this.getAttribute('data-id'), this.getAttribute('data-codigo'))">
+                            <i class='bx bx-printer'></i> Despachar
+                        </button>
+
+                        <a th:if="${estadoNombre != 'PENDIENTE' and estadoNombre != 'CONCILIADO_OK' and estadoNombre != 'MERMA_DETECTADA'}"
+                           th:href="@{/despacho(accion='nota', idOt=${c.idOt})}" class="btn-accion btn-despachar" style="background:var(--color-secondary);">
+                            <i class='bx bx-file'></i> Nota
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<div class="overlay" id="overlayConciliacion">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><i class='bx bx-check-square'></i> Conciliación de Conteo – <span id="lbl-ot-modal"></span></h3>
+            <button class="close-modal" onclick="cerrarModal()"><i class='bx bx-x'></i></button>
+        </div>
+
+        <div class="estimado-panel">
+            <div class="lbl">Estimado de Tizado</div>
+            <div class="num" id="lbl-estimado">0</div>
+        </div>
+
+        <form method="post" th:action="@{/despacho/conciliar}" onsubmit="return validarConciliacion()">
+            <input type="hidden" name="idOt" id="hdn-idOt">
+            <input type="hidden" name="cantidadEstimada" id="hdn-estimado">
+
+            <label style="text-align: center; font-size: 0.95rem; margin-bottom: 8px;">Conteo Físico Real <span class="req">*</span></label>
+            <input type="number" name="cantidadFinal" id="conteo-final" required min="0" placeholder="Ingrese el conteo de almacén..." oninput="calcularDiferencia()" class="form-control" style="font-size: 1.4rem; text-align: center; font-weight: bold; height: 56px; margin-bottom:16px;">
+
+            <div class="alerta-diferencia" id="alertaDiferencia">
+                <strong style="display:block; margin-bottom:4px;"><i class='bx bx-error'></i> Diferencia detectada</strong>
+                <span id="lbl-diferencia" style="font-weight: 800; font-size: 1.1rem;"></span> unidades.<br>Esta merma se registrará en auditoría.
+            </div>
+
+            <label>Observaciones</label>
+            <textarea name="observaciones" placeholder="Notas sobre el conteo físico..."></textarea>
+
+            <button type="submit" class="btn-guardar"><i class='bx bx-down-arrow-circle'></i> Validar y Generar Nota</button>
+        </form>
+    </div>
+</div>
+<div class="overlay" id="overlayConfirmarDespacho">
+    <div class="modal" style="max-width: 400px; text-align: center; padding: 32px 24px;">
+
+        <div style="width: 70px; height: 70px; background: #e0f2fe; color: #0369a1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin: 0 auto 20px;">
+            <i class='bx bx-paper-plane'></i>
+        </div>
+
+        <h3 style="color: var(--color-secondary); font-size: 1.3rem; font-weight: 700; margin-bottom: 10px;">Confirmar Despacho</h3>
+        <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">
+            ¿Estás seguro que deseas confirmar el despacho y generar la nota oficial para la Orden <strong id="lbl-despacho-ot" style="color: var(--color-primary); font-family: monospace;"></strong>?
+        </p>
+
+        <form method="post" th:action="@{/despacho/despachar}" style="margin-top: 24px;">
+            <input type="hidden" name="idConciliacion" id="hdn-despacho-id">
+
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button type="button" class="btn-outline" onclick="cerrarModalDespachar()" style="flex: 1; justify-content: center; padding: 0.75rem;">
+                    <i class='bx bx-x'></i> Cancelar
+                </button>
+                <button type="submit" class="btn-guardar" style="flex: 1; margin: 0; border-radius: var(--radius-sm);">
+                    <i class='bx bx-check'></i> Sí, despachar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    // JS INTACTO
+    var estimadoGlobal = 0;
+    function abrirConciliacion(idOt, estimado, codigoOt, cantidadEnsamblada) {
+        estimadoGlobal = estimado;
+        document.getElementById('hdn-idOt').value    = idOt;
+        document.getElementById('hdn-estimado').value = estimado;
+        document.getElementById('lbl-estimado').textContent = estimado;
+        document.getElementById('lbl-ot-modal').textContent = codigoOt;
+        var inputConteo = document.getElementById('conteo-final');
+        inputConteo.value = (cantidadEnsamblada > 0) ? cantidadEnsamblada : '';
+        document.getElementById('alertaDiferencia').style.display = 'none';
+        document.getElementById('overlayConciliacion').classList.add('activo');
+        calcularDiferencia();
+        setTimeout(function() { inputConteo.focus(); }, 100);
+    }
+    function cerrarModal() { document.getElementById('overlayConciliacion').classList.remove('activo'); }
+    document.getElementById('overlayConciliacion').addEventListener('click', function(e) { if (e.target === this) cerrarModal(); });
+
+    function calcularDiferencia() {
+        var finalStr = document.getElementById('conteo-final').value;
+        var alerta   = document.getElementById('alertaDiferencia');
+        if (!finalStr) { alerta.style.display = 'none'; return; }
+        var dif = parseInt(finalStr) - estimadoGlobal;
+        if (dif !== 0) { document.getElementById('lbl-diferencia').textContent = Math.abs(dif); alerta.style.display = 'block'; }
+        else { alerta.style.display = 'none'; }
+    }
+
+    function validarConciliacion() {
+        var val = document.getElementById('conteo-final').value;
+        if (!val || parseInt(val) < 0) { alert('Por favor ingrese un conteo físico válido (≥ 0).'); return false; }
+        return true;
+    }
+
+    function poblarFiltros() {
+        const estadosSet = new Set();
+        const modelosSet = new Set();
+        document.querySelectorAll('#tbodyDespacho tr').forEach(row => {
+            const estado = row.getAttribute('data-estado'); if (estado) estadosSet.add(estado);
+            const modelo = row.getAttribute('data-modelo'); if (modelo) modelosSet.add(modelo);
+        });
+        const selectEstado = document.getElementById('filtroEstado');
+        selectEstado.innerHTML = '<option value="">-- Todos --</option>';
+        Array.from(estadosSet).sort().forEach(est => {
+            let texto = est;
+            if (est === 'PENDIENTE') texto = 'Pendiente'; else if (est === 'CONCILIADO_OK') texto = 'Conciliado OK'; else if (est === 'MERMA_DETECTADA') texto = 'Merma Detectada'; else if (est === 'DESPACHADO') texto = 'Despachado';
+            const opt = document.createElement('option'); opt.value = est; opt.textContent = texto; selectEstado.appendChild(opt);
+        });
+        const selectModelo = document.getElementById('filtroModelo');
+        selectModelo.innerHTML = '<option value="">-- Todos --</option>';
+        Array.from(modelosSet).sort().forEach(mod => { const opt = document.createElement('option'); opt.value = mod; opt.textContent = mod; selectModelo.appendChild(opt); });
+    }
+
+    function aplicarFiltros() {
+        const filtroOt = document.getElementById('filtroOt').value.trim().toLowerCase();
+        const filtroCliente = document.getElementById('filtroCliente').value.trim().toLowerCase();
+        const filtroEstado = document.getElementById('filtroEstado').value;
+        const filtroModelo = document.getElementById('filtroModelo').value;
+        const rows = document.querySelectorAll('#tbodyDespacho tr');
+        let visibleCount = 0;
+        rows.forEach(row => {
+            const ot = row.getAttribute('data-ot').toLowerCase();
+            const cliente = row.getAttribute('data-cliente').toLowerCase();
+            const modelo = row.getAttribute('data-modelo');
+            const estado = row.getAttribute('data-estado');
+            let visible = true;
+            if (filtroOt && !ot.includes(filtroOt)) visible = false;
+            if (filtroCliente && !cliente.includes(filtroCliente)) visible = false;
+            if (filtroEstado && estado !== filtroEstado) visible = false;
+            if (filtroModelo && modelo !== filtroModelo) visible = false;
+            row.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
+        });
+        const sinDatosMsg = document.getElementById('sinResultadosMsg');
+        if (sinDatosMsg) sinDatosMsg.remove();
+        if (visibleCount === 0 && rows.length > 0) {
+            const tbody = document.getElementById('tbodyDespacho');
+            const msgRow = document.createElement('tr');
+            msgRow.id = 'sinResultadosMsg';
+            msgRow.innerHTML = '<td colspan="8" style="text-align:center; padding:48px; color:var(--text-muted);"><i class="bx bx-search" style="font-size:3rem; color:var(--text-light); display:block; margin-bottom:12px;"></i>No se encontraron resultados con los filtros aplicados.</td>';
+            tbody.appendChild(msgRow);
+        }
+    }
+
+    function limpiarFiltros() {
+        document.getElementById('filtroOt').value = ''; document.getElementById('filtroCliente').value = ''; document.getElementById('filtroEstado').value = ''; document.getElementById('filtroModelo').value = '';
+        aplicarFiltros();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        poblarFiltros(); aplicarFiltros();
+        const filtros = ['filtroOt', 'filtroCliente', 'filtroEstado', 'filtroModelo'];
+        filtros.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { if (el.tagName === 'INPUT') el.addEventListener('keyup', aplicarFiltros); else el.addEventListener('change', aplicarFiltros); }
+        });
+        document.getElementById('btnLimpiarFiltros').addEventListener('click', limpiarFiltros);
+    });
+    // Función para desplegar el menú lateral
+    function toggleSubmenu(element) {
+        element.parentElement.classList.toggle('active');
+    }
+    // Lógica del modal de confirmación de Despacho
+    function abrirModalDespachar(idConciliacion, codigoOt) {
+        document.getElementById('hdn-despacho-id').value = idConciliacion;
+        document.getElementById('lbl-despacho-ot').textContent = codigoOt;
+        document.getElementById('overlayConfirmarDespacho').classList.add('activo');
+    }
+
+    function cerrarModalDespachar() {
+        document.getElementById('overlayConfirmarDespacho').classList.remove('activo');
+    }
+
+    // Cerrar al hacer clic fuera de la caja blanca
+    document.getElementById('overlayConfirmarDespacho').addEventListener('click', function(e) {
+        if (e.target === this) cerrarModalDespachar();
+    });
+</script>
+</body>
+</html>
