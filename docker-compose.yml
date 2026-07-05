@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  textil-app:
+    build: .
+    container_name: textil-app
+    ports:
+      - "34567:8080"
+    restart: unless-stopped
